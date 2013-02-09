@@ -1,0 +1,18 @@
+Source: edk2
+Section: misc
+Priority: extra
+Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Uploaders: Steve Langasek <vorlon@debian.org>, Serge Hallyn <serge.hallyn@ubuntu.com>
+Build-Depends: debhelper (>= 8), uuid-dev, quilt, iasl, gcc-multilib [i386], nasm, python
+Standards-Version: 3.9.4
+Homepage: http://www.tianocore.org
+Vcs-Git: git+ssh://git.debian.org/git/pkg-qemu/edk2.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-qemu/edk2.git
+
+Package: ovmf
+Architecture: all
+Depends: ${misc:Depends}
+Description: UEFI firmware for virtual machines
+ Open Virtual Machine Firmware is a build of EDK II for virtual machines.
+ It includes full support for UEFI, including Secure Boot, allowing use
+ of UEFI in place of a traditional BIOS in your VM.

@@ -1,0 +1,5 @@
+edk2 (0~20121205.edae8d2d-1) UNRELEASED; urgency=low
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Steve Langasek <steve.langasek@ubuntu.com>  Sat, 02 Feb 2013 09:41:06 +0000

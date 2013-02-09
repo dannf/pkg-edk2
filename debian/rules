@@ -1,0 +1,81 @@
+#!/usr/bin/make -f
+
+SHELL=/bin/bash
+
+# various bits that have to be pulled in to create the full source tarball
+OPENSSL_SRC= openssl-0.9.8w.tar.gz
+OPENSSL_URL= http://www.openssl.org/source/$(OPENSSL_SRC)
+FAT_SRC    = http://edk2-fatdriver2.svn.sourceforge.net/svnroot/edk2-fatdriver2/trunk/FatPkg
+FAT_REV    = 72
+SHELL_SRC  = https://efi-shell.svn.sourceforge.net/svnroot/efi-shell/trunk/Shell
+SHELL_REV  = 61
+
+
+# Only used for creating our build tools.
+DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+ifeq ($(DEB_BUILD_ARCH),amd64)
+	ARCH=X64
+else
+	ARCH=IA32
+endif
+
+ver := $(shell dpkg-parsechangelog | sed -n -e's/^Version: \(.*\)-[^-]\+/\1/p')
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	make -C BaseTools ARCH=$(ARCH)
+	# We call this twice because it modifies the shell environment,
+	# and it's excessively awkward to do all the subsequent work in a
+	# single shell invocation
+	. ./edksetup.sh
+	QUILT_PC=.pc-post QUILT_PATCHES=debian/post-patches quilt push -a || [ $$? = 2 ]
+	cd CryptoPkg/Library/OpensslLib/ && ./Install.sh
+	cd UefiCpuPkg/ResetVector/Vtf0 && python Build.py
+	set -e; . ./edksetup.sh; build -p EdkShellPkg/EdkShellPkg.dsc \
+			-m Shell/ShellFull.inf -b RELEASE; \
+		cp -a Build/EdkShellPkg/RELEASE_GCC47/X64/ShellFull.efi \
+			EdkShellBinPkg/FullShell/X64/Shell_Full.efi; \
+		build -p FatPkg/FatPkg.dsc -m FatPkg/EnhancedFatDxe/Fat.inf \
+			-b RELEASE; \
+		cp -a Build/Fat/RELEASE_GCC47/X64/Fat.efi \
+			FatBinPkg/EnhancedFatDxe/X64/Fat.efi; \
+		build -DSECURE_BOOT_ENABLE=TRUE -b RELEASE
+
+override_dh_auto_clean:
+	set -e; \
+	if [ -d BaseTools/Source/C/bin ]; then \
+		. ./edksetup.sh; build clean; \
+		make -C BaseTools clean; \
+	fi
+	QUILT_PC=.pc-post QUILT_PATCHES=debian/post-patches quilt pop -a || [ $$? = 2 ]
+	rm -rf Conf/.cache Build .pc-post
+
+get-orig-source:
+	mkdir -p edk2-$(ver)
+	cp -a * edk2-$(ver) || true
+	rm -rf edk2-$(ver)/edk2-$(ver)
+	find edk2-$(ver) -name '*.efi' -print0 | xargs -0 rm -f
+	rm -rf edk2-$(ver)/BaseTools/Bin \
+		edk2-$(ver)/UefiCpuPkg/ResetVector/Vtf0/Bin/*.raw \
+		edk2-$(ver)/EdkCompatibilityPkg/Other \
+		edk2-$(ver)/AppPkg \
+		edk2-$(ver)/DuetPkg/BootSector/bin \
+		edk2-$(ver)/StdLib/LibC/Main/Ia32/ftol2.obj \
+		edk2-$(ver)/BeagleBoardPkg/Debugger_scripts/rvi_dummy.axf \
+		edk2-$(ver)/BaseTools/Source/Python/*/*.pyd \
+		edk2-$(ver)/BaseTools/Source/Python/UPT/Dll/sqlite3.dll \
+		edk2-$(ver)/debian
+	# openssl
+	wget $(OPENSSL_URL)
+	tar zxvf $(OPENSSL_SRC) -C edk2-$(ver)/CryptoPkg/Library/OpensslLib
+	cd edk2-$(ver)/CryptoPkg/Library/OpensslLib/$$(basename $(OPENSSL_SRC) .tar.gz) && \
+		patch -p0 < ../EDKII_openssl-0.9.8w.patch
+	# fat.efi
+	svn export -r$(FAT_REV) $(FAT_SRC) edk2-$(ver)/FatPkg
+	# efi shell
+	svn export -r$(SHELL_REV) $(SHELL_SRC) edk2-$(ver)/Shell
+	cd edk2-$(ver)/Shell && patch -p1 < ../EdkShellPkg/ShellR$(SHELL_REV).patch 
+	tar Jcvf ../edk2_$(ver).orig.tar.xz edk2-$(ver)
+	rm -rf edk2-$(ver) $(OPENSSL_SRC)

@@ -1,0 +1,8 @@
+CryptoPkg/Include/openssl/*.h
+Conf/BuildEnv.sh
+Conf/build_rule.txt
+Conf/target.txt
+Conf/tools_def.txt
+EdkShellBinPkg/FullShell/X64/Shell_Full.efi
+FatBinPkg/EnhancedFatDxe/X64/Fat.efi
+UefiCpuPkg/ResetVector/Vtf0/Bin/*.raw
