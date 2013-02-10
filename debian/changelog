@@ -1,5 +1,5 @@
-edk2 (0~20121205.edae8d2d-1) UNRELEASED; urgency=low
+edk2 (0~20121205.edae8d2d-1) unstable; urgency=low
 
   * Initial release.
 
- -- Steve Langasek <vorlon@debian.org>  Sat, 02 Feb 2013 09:41:06 +0000
+ -- Steve Langasek <vorlon@debian.org>  Sun, 10 Feb 2013 06:45:06 +0000
