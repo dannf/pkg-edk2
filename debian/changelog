@@ -1,3 +1,11 @@
+edk2 (0~20121205.edae8d2d-2) UNRELEASED; urgency=low
+
+  * Fix the package section and debian/copyright: the FAT driver has a
+    license addendum which makes it non-free instead of BSD.
+    Closes: #714322.
+
+ -- Steve Langasek <vorlon@debian.org>  Tue, 24 Sep 2013 15:23:53 -0700
+
 edk2 (0~20121205.edae8d2d-1) unstable; urgency=low
 
   * Initial release.
