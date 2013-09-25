@@ -1,4 +1,4 @@
-edk2 (0~20121205.edae8d2d-2) UNRELEASED; urgency=low
+edk2 (0~20121205.edae8d2d-2) unstable; urgency=low
 
   * Fix the package section and debian/copyright: the FAT driver has a
     license addendum which makes it non-free instead of BSD.
@@ -6,7 +6,7 @@ edk2 (0~20121205.edae8d2d-2) UNRELEASED; urgency=low
   * Make our build friendlier to git checkouts, by making sure our target
     dir exists before copying.
 
- -- Steve Langasek <vorlon@debian.org>  Tue, 24 Sep 2013 15:23:53 -0700
+ -- Steve Langasek <vorlon@debian.org>  Wed, 25 Sep 2013 03:35:20 +0000
 
 edk2 (0~20121205.edae8d2d-1) unstable; urgency=low
 
