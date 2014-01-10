@@ -5,6 +5,8 @@ edk2 (0~20131029.2f34e065-1) UNRELEASED; urgency=medium
     - drop debian/patches/enum-handling, fixed upstream.
   * debian/patches/enable-nvme: enable the NVMe driver.
     Closes LP: #1267816.
+  * debian/post-patches/setup.diff: drop gcc4.7 handling, which is
+    sorted upstream.
 
  -- Steve Langasek <vorlon@debian.org>  Fri, 10 Jan 2014 21:33:45 +0000
 
