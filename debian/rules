@@ -8,7 +8,7 @@ OPENSSL_URL= http://www.openssl.org/source/$(OPENSSL_SRC)
 FAT_SRC    = http://edk2-fatdriver2.svn.sourceforge.net/svnroot/edk2-fatdriver2/trunk/FatPkg
 FAT_REV    = 72
 SHELL_SRC  = https://efi-shell.svn.sourceforge.net/svnroot/efi-shell/trunk/Shell
-SHELL_REV  = 61
+SHELL_REV  = 64
 
 
 # Only used for creating our build tools.
@@ -77,6 +77,6 @@ get-orig-source:
 	svn export -r$(FAT_REV) $(FAT_SRC) edk2-$(ver)/FatPkg
 	# efi shell
 	svn export -r$(SHELL_REV) $(SHELL_SRC) edk2-$(ver)/Shell
-	cd edk2-$(ver)/Shell && patch -p1 < ../EdkShellPkg/ShellR$(SHELL_REV).patch 
+	cd edk2-$(ver)/Shell && patch -p0 < ../EdkShellPkg/ShellR$(SHELL_REV).patch 
 	tar Jcvf ../edk2_$(ver).orig.tar.xz edk2-$(ver)
 	rm -rf edk2-$(ver) $(OPENSSL_SRC)
