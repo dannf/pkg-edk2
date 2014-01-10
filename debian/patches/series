@@ -1,2 +1,3 @@
 shell-efiapi.patch
 mismatched-enums
+enable-nvme

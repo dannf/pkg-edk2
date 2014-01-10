@@ -1,0 +1,101 @@
+Author: Steve Langasek <steve.langasek@ubuntu.com>
+Description: enable the NVMe driver
+ Enable the driver for NVMe disks, not enabled by default upstream.
+Bug-Ubuntu: https://bugs.launchpad.net/bugs/1267816
+
+Index: edk2/OvmfPkg/OvmfPkgIa32.dsc
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgIa32.dsc
++++ edk2/OvmfPkg/OvmfPkgIa32.dsc
+@@ -495,6 +495,11 @@
+   MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+   MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++  #
++  # NVMe Support
++  #
++  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+   IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+   IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
+Index: edk2/OvmfPkg/OvmfPkgIa32.fdf
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgIa32.fdf
++++ edk2/OvmfPkg/OvmfPkgIa32.fdf
+@@ -276,6 +276,11 @@
+ INF  MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+ INF  MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++#
++# NVMe support
++#
++INF  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+ INF  IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+ INF  IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
+Index: edk2/OvmfPkg/OvmfPkgIa32X64.dsc
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgIa32X64.dsc
++++ edk2/OvmfPkg/OvmfPkgIa32X64.dsc
+@@ -502,6 +502,11 @@
+   MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+   MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++  #
++  # NVMe Support
++  #
++  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+   IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+   IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
+Index: edk2/OvmfPkg/OvmfPkgIa32X64.fdf
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgIa32X64.fdf
++++ edk2/OvmfPkg/OvmfPkgIa32X64.fdf
+@@ -276,6 +276,11 @@
+ INF  MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+ INF  MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++# 
++# NVMe support
++#
++INF  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+ INF  IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+ INF  IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
+Index: edk2/OvmfPkg/OvmfPkgX64.dsc
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgX64.dsc
++++ edk2/OvmfPkg/OvmfPkgX64.dsc
+@@ -500,6 +500,11 @@
+   MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+   MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++  #
++  # NVMe Support
++  #
++  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+   IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+   IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
+Index: edk2/OvmfPkg/OvmfPkgX64.fdf
+===================================================================
+--- edk2.orig/OvmfPkg/OvmfPkgX64.fdf
++++ edk2/OvmfPkg/OvmfPkgX64.fdf
+@@ -276,6 +276,11 @@
+ INF  MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
+ INF  MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
+ 
++# 
++# NVMe support
++#
++INF  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+ !ifdef $(CSM_ENABLE)
+ INF  IntelFrameworkModulePkg/Csm/BiosThunk/VideoDxe/VideoDxe.inf
+ INF  IntelFrameworkModulePkg/Csm/LegacyBiosDxe/LegacyBiosDxe.inf
