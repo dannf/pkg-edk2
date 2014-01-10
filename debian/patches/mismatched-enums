@@ -4,11 +4,11 @@ Description: use the right enums for an enum field
  variable which is of a different enum type.  Just because the numeric
  values happen to line up doesn't make it right.
 
-Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
+Index: edk2/Shell/mm/mm.c
 ===================================================================
---- edk2-0~20121205.edae8d2d.orig/Shell/mm/mm.c
-+++ edk2-0~20121205.edae8d2d/Shell/mm/mm.c
-@@ -271,7 +271,7 @@
+--- edk2.orig/Shell/mm/mm.c
++++ edk2/Shell/mm/mm.c
+@@ -270,7 +270,7 @@
      //
      // Parse arguments
      //
@@ -16,8 +16,8 @@ Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
 +    Width       = IO_UINT8;
      Size        = 1;
      AccessType  = EfiMemory;
-     AddressStr  = NULL;
-@@ -364,22 +364,22 @@
+     ValueStr    = NULL;
+@@ -362,22 +362,22 @@
  
        switch (ItemValue) {
        case 1:
@@ -44,7 +44,7 @@ Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
          Size  = 8;
          break;
  
-@@ -669,16 +669,16 @@
+@@ -667,16 +667,16 @@
    )
  {
    do {
@@ -65,7 +65,7 @@ Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
        *(UINT64 *) Buffer = *(UINT64 *) (UINTN) Address;
        Address -= 8;
      } else {
-@@ -701,16 +701,16 @@
+@@ -699,16 +699,16 @@
    )
  {
    do {
@@ -86,7 +86,7 @@ Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
        *(UINT64 *) (UINTN) Address = *(UINT64 *) Buffer;
        Address += 8;
      } else {
-@@ -804,7 +804,7 @@
+@@ -802,7 +802,7 @@
    //
    // Parse arguments
    //
@@ -95,7 +95,7 @@ Index: edk2-0~20121205.edae8d2d/Shell/mm/mm.c
    *Size                 = 1;
    *AccessType           = EfiMemory;
    AddressStr            = WidthStr = NULL;
-@@ -881,22 +881,22 @@
+@@ -879,22 +879,22 @@
        WidthStr = Ptr;
        switch (Xtoi (WidthStr)) {
        case 1:
