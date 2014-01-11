@@ -1,6 +1,6 @@
 edk2 (0~20131029.2f34e065-1) UNRELEASED; urgency=medium
 
-  * New upstream release.
+  * New upstream release.  Closes: #714463.
     - update debian/rules to pull a new version of the shell.
     - drop debian/patches/enum-handling, fixed upstream.
     - drop debian/patches/mismatched-enums, fixed upstream.
