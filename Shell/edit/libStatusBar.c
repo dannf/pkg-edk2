@@ -157,11 +157,15 @@ Returns:
   // back up the screen attributes
   //
   Orig                  = MainEditor.ColorAttributes;
+  New.Data              = 0;
   New.Colors.Foreground = Orig.Colors.Background;
   New.Colors.Background = Orig.Colors.Foreground;
 
   Out->EnableCursor (Out, FALSE);
-  Out->SetAttribute (Out, New.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (New.Colors.Foreground, New.Colors.Background)
+         );
 
   //
   // clear status bar
@@ -191,7 +195,10 @@ Returns:
   //
   // restore the old screen attributes
   //
-  Out->SetAttribute (Out, Orig.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+         );
 
   //
   // restore position in edit area

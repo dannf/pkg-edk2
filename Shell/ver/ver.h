@@ -37,3 +37,4 @@ DisplayExtendedVersionInfo (
   IN EFI_SYSTEM_TABLE   *SystemTable
   );
 #endif
+

@@ -5,7 +5,7 @@
   After DxeCore finish DXE phase, gEfiBdsArchProtocolGuid->BdsEntry will be invoked
   to enter BDS phase.
 
-Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -37,6 +37,17 @@ EFI_BDS_ARCH_PROTOCOL  gBds = {
 };
 
 UINT16                          *mBootNext = NULL;
+
+///
+/// The read-only variables defined in UEFI Spec.
+///
+CHAR16  *mReadOnlyVariables[] = {
+  L"PlatformLangCodes",
+  L"LangCodes",
+  L"BootOptionSupport",
+  L"HwErrRecSupport",
+  L"OsIndicationsSupported"
+  };
 
 /**
 
@@ -392,7 +403,9 @@ BdsFormalizeEfiGlobalVariable (
   //
   // OS indicater support variable
   //
-  OsIndicationSupport = EFI_OS_INDICATIONS_BOOT_TO_FW_UI;
+  OsIndicationSupport = EFI_OS_INDICATIONS_BOOT_TO_FW_UI \
+                      | EFI_OS_INDICATIONS_FMP_CAPSULE_SUPPORTED;
+
   Status = gRT->SetVariable (
                   L"OsIndicationsSupported",
                   &gEfiGlobalVariableGuid,
@@ -441,6 +454,54 @@ BdsFormalizeEfiGlobalVariable (
 
 /**
 
+  Allocate a block of memory that will contain performance data to OS.
+
+**/
+VOID
+BdsAllocateMemoryForPerformanceData (
+  VOID
+  )
+{
+  EFI_STATUS                    Status;
+  EFI_PHYSICAL_ADDRESS          AcpiLowMemoryBase;
+  EDKII_VARIABLE_LOCK_PROTOCOL  *VariableLock;
+
+  AcpiLowMemoryBase = 0x0FFFFFFFFULL;
+
+  //
+  // Allocate a block of memory that will contain performance data to OS.
+  //
+  Status = gBS->AllocatePages (
+                  AllocateMaxAddress,
+                  EfiReservedMemoryType,
+                  EFI_SIZE_TO_PAGES (PERF_DATA_MAX_LENGTH),
+                  &AcpiLowMemoryBase
+                  );
+  if (!EFI_ERROR (Status)) {
+    //
+    // Save the pointer to variable for use in S3 resume.
+    //
+    Status = gRT->SetVariable (
+               L"PerfDataMemAddr",
+               &gPerformanceProtocolGuid,
+               EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+               sizeof (EFI_PHYSICAL_ADDRESS),
+               &AcpiLowMemoryBase
+               );
+    ASSERT_EFI_ERROR (Status);
+    //
+    // Mark L"PerfDataMemAddr" variable to read-only if the Variable Lock protocol exists
+    //
+    Status = gBS->LocateProtocol (&gEdkiiVariableLockProtocolGuid, NULL, (VOID **) &VariableLock);
+    if (!EFI_ERROR (Status)) {
+      Status = VariableLock->RequestToLock (VariableLock, L"PerfDataMemAddr", &gPerformanceProtocolGuid);
+      ASSERT_EFI_ERROR (Status);
+    }
+  }
+}
+
+/**
+
   Service routine for BdsInstance->Entry(). Devices are connected, the
   consoles are initialized, and the boot options are tried.
 
@@ -457,12 +518,20 @@ BdsEntry (
   LIST_ENTRY                      BootOptionList;
   UINTN                           BootNextSize;
   CHAR16                          *FirmwareVendor;
+  EFI_STATUS                      Status;
+  UINT16                          BootTimeOut;
+  UINTN                           Index;
+  EDKII_VARIABLE_LOCK_PROTOCOL    *VariableLock;
 
   //
   // Insert the performance probe
   //
   PERF_END (NULL, "DXE", NULL, 0);
   PERF_START (NULL, "BDS", NULL, 0);
+
+  PERF_CODE (
+    BdsAllocateMemoryForPerformanceData ();
+  );
 
   //
   // Initialize the global system boot option and driver option
@@ -486,12 +555,25 @@ BdsEntry (
   //
   // Fixup Tasble CRC after we updated Firmware Vendor and Revision
   //
+  gST->Hdr.CRC32 = 0;
   gBS->CalculateCrc32 ((VOID *)gST, sizeof(EFI_SYSTEM_TABLE), &gST->Hdr.CRC32);
 
   //
   // Validate Variable.
   //
   BdsFormalizeEfiGlobalVariable();
+
+  //
+  // Mark the read-only variables if the Variable Lock protocol exists
+  //
+  Status = gBS->LocateProtocol (&gEdkiiVariableLockProtocolGuid, NULL, (VOID **) &VariableLock);
+  DEBUG ((EFI_D_INFO, "[BdsDxe] Locate Variable Lock protocol - %r\n", Status));
+  if (!EFI_ERROR (Status)) {
+    for (Index = 0; Index < sizeof (mReadOnlyVariables) / sizeof (mReadOnlyVariables[0]); Index++) {
+      Status = VariableLock->RequestToLock (VariableLock, mReadOnlyVariables[Index], &gEfiGlobalVariableGuid);
+      ASSERT_EFI_ERROR (Status);
+    }
+  }
 
   //
   // Report Status Code to indicate connecting drivers will happen
@@ -501,13 +583,26 @@ BdsEntry (
     (EFI_SOFTWARE_DXE_BS_DRIVER | EFI_SW_DXE_BS_PC_BEGIN_CONNECTING_DRIVERS)
     );
 
-  //
-  // Do the platform init, can be customized by OEM/IBV
-  //
-  PERF_START (NULL, "PlatformBds", "BDS", 0);
-  PlatformBdsInit ();
-
   InitializeHwErrRecSupport();
+
+  //
+  // Initialize L"Timeout" EFI global variable.
+  //
+  BootTimeOut = PcdGet16 (PcdPlatformBootTimeOut);
+  if (BootTimeOut != 0xFFFF) {
+    //
+    // If time out value equal 0xFFFF, no need set to 0xFFFF to variable area because UEFI specification
+    // define same behavior between no value or 0xFFFF value for L"Timeout".
+    //
+    Status = gRT->SetVariable (
+                    L"Timeout",
+                    &gEfiGlobalVariableGuid,
+                    EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_NON_VOLATILE,
+                    sizeof (UINT16),
+                    &BootTimeOut
+                    );
+    ASSERT_EFI_ERROR(Status);
+  }
 
   //
   // bugbug: platform specific code
@@ -516,6 +611,12 @@ BdsEntry (
   InitializeStringSupport ();
   InitializeLanguage (TRUE);
   InitializeFrontPage (TRUE);
+
+  //
+  // Do the platform init, can be customized by OEM/IBV
+  //
+  PERF_START (NULL, "PlatformBds", "BDS", 0);
+  PlatformBdsInit ();
 
   //
   // Set up the device list based on EFI 1.1 variables

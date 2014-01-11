@@ -149,8 +149,8 @@ typedef struct _EFI_EDITOR_MENU_ITEM {
 } EFI_EDITOR_MENU_ITEM;
 
 typedef struct {
-  UINT32  Foreground : 4;
-  UINT32  Background : 4;
+  UINT8  Foreground : 4;
+  UINT8  Background : 4;
 } EFI_EDITOR_COLOR_ATTRIBUTES;
 
 typedef union {
@@ -223,3 +223,4 @@ typedef struct {
 } EFI_EDITOR_GLOBAL_EDITOR;
 
 #endif
+

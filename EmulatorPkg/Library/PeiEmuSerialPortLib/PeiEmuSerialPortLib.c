@@ -137,4 +137,3 @@ SerialPortPoll (
   return FALSE;
 }
 
-

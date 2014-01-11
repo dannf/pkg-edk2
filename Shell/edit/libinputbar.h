@@ -44,3 +44,4 @@ MainInputBarSetStringSize (
   );
 
 #endif
+

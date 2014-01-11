@@ -59,7 +59,7 @@ SHELL_VAR_CHECK_ITEM    LsCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -199,7 +199,6 @@ Returns:
   CHAR16                  *PtrTwo;
   CHAR16                  *Path;
   EFI_LIST_ENTRY          DirList;
-  EFI_LIST_ENTRY          *Link;
   SHELL_FILE_ARG          *Arg;
   BOOLEAN                 WildcardsEncountered;
   CHAR16                  *Pattern;
@@ -210,7 +209,6 @@ Returns:
   Argv    = SI->Argv;
   PtrTwo  = NULL;
   InitializeListHead (&DirList);
-  Link                = NULL;
   Arg                 = NULL;
   Pattern             = NULL;
   Status              = EFI_SUCCESS;
@@ -815,8 +813,6 @@ GetPattern (
   CHAR16 *Path
   )
 {
-
-  EFI_STATUS  Status;
   CHAR16      *PtrOne;
   CHAR16      *PtrTwo;
   UINTN       Index1;
@@ -825,7 +821,6 @@ GetPattern (
   BOOLEAN     LeadingBlanks;
 
   LeadingBlanks = TRUE;
-  Status        = EFI_SUCCESS;
 
   for (PtrOne = PtrTwo = Path; PtrOne < Path + StrLen (Path); PtrOne++) {
     if ((*PtrOne) == ' ' && LeadingBlanks) {

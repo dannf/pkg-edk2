@@ -54,7 +54,7 @@ SHELL_VAR_CHECK_ITEM    MemmapCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -216,7 +216,7 @@ Returns:
     }
 
     Bytes = LShiftU64 (Desc->NumberOfPages, 12);
-    Ptr   = MemoryTypeStr (Desc->Type);
+    Ptr   = MemoryTypeStr ((EFI_MEMORY_TYPE)Desc->Type);
     PrintToken (
       STRING_TOKEN (STR_MEMMAP_FIVE_ARGS),
       HiiHandle,

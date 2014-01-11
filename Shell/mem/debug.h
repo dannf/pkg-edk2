@@ -156,3 +156,4 @@ EFIStructsPrint (
 extern EFI_HII_HANDLE HiiMemHandle;
 
 #endif
+

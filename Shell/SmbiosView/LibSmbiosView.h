@@ -128,3 +128,4 @@ SmbiosCheckStructure (
   );
 
 #endif
+

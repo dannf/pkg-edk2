@@ -1,7 +1,7 @@
 /** @file
   Boot functions implementation for UefiPxeBc Driver.
 
-  Copyright (c) 2009 - 2012, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -98,6 +98,17 @@ PxeBcSelectBootPrompt (
   ASSERT (!Mode->UsingIpv6);
 
   VendorOpt = &Cache->Dhcp4.VendorOpt;
+  //
+  // According to the PXE specification 2.1, Table 2-1 PXE DHCP Options,
+  // we must not consider a boot prompt or boot menu if all of the following hold:
+  //   - the PXE_DISCOVERY_CONTROL tag(6) is present inside the Vendor Options(43), and has bit 3 set  
+  //   - a boot file name has been presented in the initial DHCP or ProxyDHCP offer packet.
+  //
+  if (IS_DISABLE_PROMPT_MENU (VendorOpt->DiscoverCtrl) &&
+      Cache->Dhcp4.OptList[PXEBC_DHCP4_TAG_INDEX_BOOTFILE] != NULL) {
+    return EFI_ABORTED;
+  }
+  
   if (!IS_VALID_BOOT_PROMPT (VendorOpt->BitMap)) {
     return EFI_TIMEOUT;
   }
@@ -278,7 +289,7 @@ PxeBcSelectBootMenu (
   PXEBC_BOOT_MENU_ENTRY      *MenuArray[PXEBC_MENU_MAX_NUM];
 
   Finish    = FALSE;
-  Select    = 1;
+  Select    = 0;
   Index     = 0;
   *Type     = 0;
   Mode      = Private->PxeBc.Mode;

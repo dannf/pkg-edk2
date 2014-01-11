@@ -77,11 +77,10 @@ typedef struct _EFI_LIST_ENTRY {
   }
 
 #define SwapListEntries(Entry1, Entry2) { \
-    EFI_LIST_ENTRY  *Entry1Flink, *Entry1Blink; \
+    EFI_LIST_ENTRY  *Entry1Blink; \
     EFI_LIST_ENTRY  *Entry2Flink, *Entry2Blink; \
     Entry2Flink         = (Entry2)->Flink; \
     Entry2Blink         = (Entry2)->Blink; \
-    Entry1Flink         = (Entry1)->Flink; \
     Entry1Blink         = (Entry1)->Blink; \
     Entry2Blink->Flink  = Entry2Flink; \
     Entry2Flink->Blink  = Entry2Blink; \
@@ -100,3 +99,4 @@ typedef struct _EFI_LIST_ENTRY {
 // A lock structure
 //
 #endif
+

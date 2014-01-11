@@ -190,6 +190,11 @@ COMPONENT_TYPE       = APPLICATION
   Library/IPF/math.c
   Library/IA32/initplat.c
 
+[sources.AARCH64]
+  ver/ia32/ver32.c
+  Library/IPF/math.c
+  Library/IA32/initplat.c
+
 [includes.common]
   .
   ./Inc

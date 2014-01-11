@@ -228,11 +228,7 @@ Returns:
   UINTN                           Bytes;
 
   HEFI_EDITOR_LINE                *Line;
-  UINT64                          ByteOffset;
 
-  HEFI_EDITOR_ACTIVE_BUFFER_TYPE  BufferTypeBackup;
-
-  BufferTypeBackup        = HBufferImage.BufferType;
   HBufferImage.BufferType = DISK_BUFFER;
 
   DevicePath              = (EFI_DEVICE_PATH_PROTOCOL *) ShellGetMap (DeviceName);
@@ -268,8 +264,6 @@ Returns:
     HMainStatusBarSetStatusString (L"Read Disk Failed");
     return EFI_OUT_OF_RESOURCES;
   }
-
-  ByteOffset = MultU64x32 (Offset, BlkIo->Media->BlockSize);
 
   //
   // read from disk
@@ -405,10 +399,6 @@ Returns:
   VOID                            *Buffer;
   UINTN                           Bytes;
 
-  UINT64                          ByteOffset;
-
-  HEFI_EDITOR_ACTIVE_BUFFER_TYPE  BufferTypeBackup;
-
   //
   // if not modified, directly return
   //
@@ -416,7 +406,6 @@ Returns:
     return EFI_SUCCESS;
   }
 
-  BufferTypeBackup        = HBufferImage.BufferType;
   HBufferImage.BufferType = DISK_BUFFER;
 
   DevicePath              = (EFI_DEVICE_PATH_PROTOCOL *) ShellGetMap (DeviceName);
@@ -447,8 +436,6 @@ Returns:
     FreePool (Buffer);
     return Status;
   }
-
-  ByteOffset = MultU64x32 (Offset, BlkIo->Media->BlockSize);
 
   //
   // write the buffer to disk

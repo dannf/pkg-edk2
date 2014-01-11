@@ -1,7 +1,7 @@
 /** @file
   BDS library definition, include the file and data structure
 
-Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -31,7 +31,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/LegacyBios.h>
 #include <Protocol/SimpleTextOut.h>
 #include <Protocol/SimpleNetwork.h>
-#include <Protocol/DevicePathToText.h>
 #include <Protocol/FirmwareVolume2.h>
 #include <Protocol/PciIo.h>
 #include <Protocol/AcpiS3Save.h>
@@ -84,16 +83,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
         #error "Can not determine the default boot file name for unknown processor type!"
     #endif
 #endif
-
-/**
-
-  Allocates a block of memory to store performance data.
-
-**/
-VOID
-AllocateMemoryForPerformanceData (
-  VOID
-  );
 
 /**
 
@@ -156,30 +145,6 @@ BOOLEAN
 ValidateOption (
   UINT8                     *Variable,
   UINTN                     VariableSize
-  );
-
-/**
-  This function will create all handles associate with every device
-  path node. If the handle associate with one device path node can not
-  be created successfully, Dispatch service which load the missing drivers
-  is called basing on input parameter, since in some cases no driver 
-  dependency is assumed exist, so may need not to call this service.
-
-  @param  DevicePathToConnect   The device path which will be connected, it can be
-                                a multi-instance device path
-  @param  NeedDispatch          Whether requires dispatch service during connection 
-
-  @retval EFI_SUCCESS           All handles associate with every device path  node
-                                have been created
-  @retval EFI_OUT_OF_RESOURCES  There is no resource to create new handles
-  @retval EFI_NOT_FOUND         Create the handle associate with one device  path
-                                node failed
-
-**/
-EFI_STATUS
-ConnectDevicePathInternal (
-  IN EFI_DEVICE_PATH_PROTOCOL  *DevicePathToConnect,
-  IN BOOLEAN                   NeedDispatch
   );
 
 #endif // _BDS_LIB_H_

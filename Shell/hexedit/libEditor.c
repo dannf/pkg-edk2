@@ -732,6 +732,9 @@ Returns:
         case MEM_BUFFER:
           OldSize = HBufferImage.MemImage->Size;
           break;
+
+	default:
+          break;
         }
 
         if (LengthChange == FALSE) {

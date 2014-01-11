@@ -55,3 +55,4 @@ HMemImageSave (
   );
 
 #endif
+

@@ -1,7 +1,7 @@
 /** @file
   Implementation of driver entry point and driver binding protocol.
 
-Copyright (c) 2004 - 2011, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials are licensed
 and made available under the terms and conditions of the BSD License which
 accompanies this distribution. The full text of the license may be found at
@@ -258,7 +258,7 @@ Done:
                                device to start.
 
   @retval EFI_SUCCESS          This driver is added to ControllerHandle
-  @retval EFI_ALREADY_STARTED  This driver is already running on ControllerHandle
+  @retval EFI_DEVICE_ERROR     This driver could not be started due to a device error
   @retval other                This driver does not support this device
 
 **/
@@ -410,8 +410,13 @@ SimpleNetworkDriverStart (
 
   Snp->TxRxBufferSize     = 0;
   Snp->TxRxBuffer         = NULL;
+ 
+  if (Nii->Revision >= EFI_NETWORK_INTERFACE_IDENTIFIER_PROTOCOL_REVISION) {
+  	Snp->IfNum = Nii->IfNum;
 
-  Snp->IfNum              = Nii->IfNum;
+  } else {
+    Snp->IfNum = (UINT8) (Nii->IfNum & 0xFF);
+  }
 
   if ((Pxe->hw.Implementation & PXE_ROMID_IMP_HW_UNDI) != 0) {
     Snp->IsSwUndi             = FALSE;
@@ -698,11 +703,11 @@ SimpleNetworkDriverStart (
     return Status;
   }
 
-  Status = mPciIo->FreeBuffer (
-                        mPciIo,
-                        SNP_MEM_PAGES (4096),
-                        Snp->Cpb
-                        );
+  mPciIo->FreeBuffer (
+            mPciIo,
+            SNP_MEM_PAGES (4096),
+            Snp->Cpb
+            );
 
 Error_DeleteSNP:
 
@@ -725,6 +730,13 @@ NiiError:
         This->DriverBindingHandle,
         Controller
         );
+
+  //
+  // If we got here that means we are in error state.
+  //
+  if (!EFI_ERROR (Status)) {
+    Status = EFI_DEVICE_ERROR;
+  }
 
   return Status;
 }
@@ -828,7 +840,7 @@ SimpleNetworkDriverStop (
 //
 // Simple Network Protocol Driver Global Variables
 //
-EFI_DRIVER_BINDING_PROTOCOL mSimpleNetworkDriverBinding = {
+EFI_DRIVER_BINDING_PROTOCOL gSimpleNetworkDriverBinding = {
   SimpleNetworkDriverSupported,
   SimpleNetworkDriverStart,
   SimpleNetworkDriverStop,
@@ -1014,7 +1026,7 @@ InitializeSnpNiiDriver (
   return EfiLibInstallDriverBindingComponentName2 (
            ImageHandle,
            SystemTable,
-           &mSimpleNetworkDriverBinding,
+           &gSimpleNetworkDriverBinding,
            ImageHandle,
            &gSimpleNetworkComponentName,
            &gSimpleNetworkComponentName2

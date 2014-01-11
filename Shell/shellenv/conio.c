@@ -889,7 +889,7 @@ Returns:
     //
     // If we need to update the output do so now
     //
-    if (Update != -1) {
+    if (Update != (UINTN) -1) {
       if ((ConOut->Mode->CursorColumn != (INT32) Column) ||  (ConOut->Mode->CursorRow != (INT32) Row)) {
         PrintAt (Column, Row, L"%s%.*s", Str + Update, Delete, L"");
       } else {

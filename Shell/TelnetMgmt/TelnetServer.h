@@ -81,3 +81,4 @@ typedef struct _EFI_TELNET_SERVER_PROTOCOL {
 extern EFI_GUID gEfiTelnetServerGuid;
 
 #endif
+

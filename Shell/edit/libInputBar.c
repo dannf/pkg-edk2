@@ -141,8 +141,6 @@ Returns:
   UINTN                   Size;
   EFI_STATUS              Status;
   BOOLEAN                 NoDisplay;
-  UINTN                   Limit;
-  UINTN                   PromptLen;
 
   //
   // variable initialization
@@ -162,10 +160,14 @@ Returns:
   // back up the old screen attributes
   //
   Orig                  = MainEditor.ColorAttributes;
+  New.Data              = 0;
   New.Colors.Foreground = Orig.Colors.Background;
   New.Colors.Background = Orig.Colors.Foreground;
 
-  Out->SetAttribute (Out, New.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (New.Colors.Foreground, New.Colors.Background)
+         );
 
   //
   // clear input bar
@@ -176,19 +178,16 @@ Returns:
   PrintToken (STRING_TOKEN (STR_EDIT_LIBINPUTBAR_MAININPUTBAR), gEditHiiHandle, MainInputBar.Prompt);
 
   //
-  // that's the maximum input length that can be displayed on screen
-  //
-  PromptLen = StrLen (MainInputBar.Prompt);
-  Limit     = MainEditor.ScreenSize.Column - PromptLen;
-
-  //
   // this is a selection prompt, cursor will stay in edit area
   // actually this is for search , search/replace
   //
   if (StrStr (MainInputBar.Prompt, L"Yes/No")) {
     NoDisplay = TRUE;
     FileBufferRestorePosition ();
-    Out->SetAttribute (Out, Orig.Data);
+    Out->SetAttribute (
+           Out,
+           EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+           );
   } else {
     NoDisplay = FALSE;
   }
@@ -265,7 +264,10 @@ Returns:
   //
   // restore screen attributes
   //
-  Out->SetAttribute (Out, Orig.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+         );
 
   StatusBarNeedRefresh = TRUE;
 

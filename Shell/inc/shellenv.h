@@ -492,3 +492,4 @@ UnInstallShellEnvironment (
 #endif
 
 #endif // _SHELLENV_H_
+

@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2011 - 2012, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2011 - 2013, Intel Corporation. All rights reserved.<BR>
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -60,7 +60,8 @@ LoadLinuxCheckKernelSetup (
 
   if ((Bp->hdr.signature != 0xAA55) || // Check boot sector signature
       (Bp->hdr.header != SETUP_HDR) ||
-      (Bp->hdr.version < 0x205)        // We only support relocatable kernels
+      (Bp->hdr.version < 0x205) || // We only support relocatable kernels
+      (!Bp->hdr.relocatable_kernel)
      ) {
     return EFI_UNSUPPORTED;
   } else {
@@ -118,6 +119,34 @@ LoadLinuxAllocateKernelSetupPages (
   }
 }
 
+EFI_STATUS
+EFIAPI
+LoadLinuxInitializeKernelSetup (
+  IN VOID        *KernelSetup
+  )
+{
+  EFI_STATUS                Status;
+  UINTN                     SetupEnd;
+  struct boot_params        *Bp;
+
+  Status = BasicKernelSetupCheck (KernelSetup);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  Bp = (struct boot_params*) KernelSetup;
+
+  SetupEnd = 0x202 + (Bp->hdr.jump & 0xff);
+
+  //
+  // Clear all but the setup_header
+  //
+  ZeroMem (KernelSetup, 0x1f1);
+  ZeroMem (((UINT8 *)KernelSetup) + SetupEnd, 4096 - SetupEnd);
+  DEBUG ((EFI_D_INFO, "Cleared kernel setup 0-0x1f1, 0x%x-0x1000\n", SetupEnd));
+
+  return EFI_SUCCESS;
+}
 
 VOID*
 EFIAPI
@@ -251,8 +280,12 @@ SetupLinuxMemmap (
   // Enlarge space here, because we will allocate pool now.
   //
   MemoryMapSize += EFI_PAGE_SIZE;
-  MemoryMap = AllocatePool (MemoryMapSize);
-  ASSERT (MemoryMap != NULL);
+  Status = gBS->AllocatePool (
+                  EfiLoaderData,
+                  MemoryMapSize,
+                  (VOID **) &MemoryMap
+                  );
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Get System MemoryMap
@@ -320,15 +353,15 @@ SetupLinuxMemmap (
     if ((LastE820 != NULL) &&
         (LastE820->type == (UINT32) E820Type) &&
         (MemoryMap->PhysicalStart == LastEndAddr)) {
-      LastE820->size += EFI_PAGES_TO_SIZE (MemoryMap->NumberOfPages);
-      LastEndAddr += EFI_PAGES_TO_SIZE (MemoryMap->NumberOfPages);
+      LastE820->size += EFI_PAGES_TO_SIZE ((UINTN) MemoryMap->NumberOfPages);
+      LastEndAddr += EFI_PAGES_TO_SIZE ((UINTN) MemoryMap->NumberOfPages);
     } else {
       if (E820EntryCount >= (sizeof (Bp->e820_map) / sizeof (Bp->e820_map[0]))) {
         break;
       }
       E820->type = (UINT32) E820Type;
       E820->addr = MemoryMap->PhysicalStart;
-      E820->size = EFI_PAGES_TO_SIZE (MemoryMap->NumberOfPages);
+      E820->size = EFI_PAGES_TO_SIZE ((UINTN) MemoryMap->NumberOfPages);
       LastE820 = E820;
       LastEndAddr = E820->addr + E820->size;
       E820++;
@@ -575,13 +608,10 @@ SetupGraphics (
 STATIC
 EFI_STATUS
 SetupLinuxBootParams (
-  IN VOID                   *Kernel,
   IN OUT struct boot_params *Bp
   )
 {
   SetupGraphics (Bp);
-
-  Bp->hdr.code32_start = (UINT32)(UINTN) Kernel;
 
   SetupLinuxMemmap (Bp);
 
@@ -606,7 +636,7 @@ LoadLinux (
 
   Bp = (struct boot_params *) KernelSetup;
 
-  if (Bp->hdr.version < 0x205) {
+  if (Bp->hdr.version < 0x205 || !Bp->hdr.relocatable_kernel) {
     //
     // We only support relocatable kernels
     //
@@ -615,7 +645,19 @@ LoadLinux (
 
   InitLinuxDescriptorTables ();
 
-  SetupLinuxBootParams (Kernel, (struct boot_params*) KernelSetup);
+  Bp->hdr.code32_start = (UINT32)(UINTN) Kernel;
+  if (Bp->hdr.version >= 0x20c && Bp->hdr.handover_offset &&
+      (Bp->hdr.xloadflags & (sizeof (UINTN) == 4 ? BIT2 : BIT3))) {
+    DEBUG ((EFI_D_INFO, "Jumping to kernel EFI handover point at ofs %x\n", Bp->hdr.handover_offset));
+
+    DisableInterrupts ();
+    JumpToUefiKernel ((VOID*) gImageHandle, (VOID*) gST, KernelSetup, Kernel);
+  }
+
+  //
+  // Old kernels without EFI handover protocol
+  //
+  SetupLinuxBootParams (KernelSetup);
 
   DEBUG ((EFI_D_INFO, "Jumping to kernel\n"));
   DisableInterrupts ();

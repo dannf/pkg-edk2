@@ -58,7 +58,7 @@ SHELL_VAR_CHECK_ITEM    DmemCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -171,7 +171,7 @@ Return:
       return Status;
     }
 
-    PciRootBridgeIo->Mem.Read (PciRootBridgeIo, EfiPciIoWidthUint8, Address, Size, Buffer);
+    PciRootBridgeIo->Mem.Read (PciRootBridgeIo, EfiPciWidthUint8, Address, Size, Buffer);
   } else {
     Buffer = (UINT8 *) (UINTN) Address;
   }
@@ -331,7 +331,7 @@ Return:
       return Status;
     }
 
-    PciRootBridgeIo->Mem.Read (PciRootBridgeIo, EfiPciIoWidthUint8, Address, Size, Buffer);
+    PciRootBridgeIo->Mem.Read (PciRootBridgeIo, EfiPciWidthUint8, Address, Size, Buffer);
   } else {
     Buffer = (UINT8 *) (UINTN) Address;
   }

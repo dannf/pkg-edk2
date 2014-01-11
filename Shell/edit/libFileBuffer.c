@@ -196,8 +196,9 @@ FileBufferRestoreMousePosition (
       // backup the old screen attributes
       //
       Orig                  = MainEditor.ColorAttributes;
-      New.Colors.Foreground = Orig.Colors.Background;
-      New.Colors.Background = Orig.Colors.Foreground;
+      New.Data              = 0;
+      New.Colors.Foreground = Orig.Colors.Foreground;
+      New.Colors.Background = Orig.Colors.Background;
 
       //
       // clear the old mouse position
@@ -235,10 +236,14 @@ FileBufferRestoreMousePosition (
           Value
           );
       }
+
       //
       // set the new mouse position
       //
-      Out->SetAttribute (Out, New.Data);
+      Out->SetAttribute (
+             Out, 
+             EFI_TEXT_ATTR (New.Colors.Background, New.Colors.Foreground)
+             );
 
       //
       // clear the old mouse position
@@ -278,7 +283,10 @@ FileBufferRestoreMousePosition (
       //
       // end of HasCharacter
       //
-      Out->SetAttribute (Out, Orig.Data);
+      Out->SetAttribute (
+             Out,
+             EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+             );
     }
     //
     // end of MouseNeedRefresh
@@ -768,7 +776,7 @@ Returns:
   Handle        = NULL;
   FileSize      = 0;
   UnicodeBuffer = NULL;
-  Type          = 0;
+  Type          = DEFAULT_TYPE;
 
   //
   // in this function, when you return error ( except EFI_OUT_OF_RESOURCES )
@@ -2624,14 +2632,8 @@ FileBufferHome (
   VOID
   )
 {
-  EFI_EDITOR_LINE *Line;
   UINTN           FRow;
   UINTN           FCol;
-
-  //
-  // go to the first column of the line
-  //
-  Line  = FileBuffer.CurrentLine;
 
   FRow  = FileBuffer.FilePosition.Row;
   FCol  = 1;

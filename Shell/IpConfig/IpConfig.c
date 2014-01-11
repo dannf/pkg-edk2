@@ -76,7 +76,7 @@ SHELL_VAR_CHECK_ITEM  IpconfigCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 

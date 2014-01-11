@@ -153,3 +153,4 @@ GetNameGuidFromFwVolDevicePathNode (
   );
 
 #endif
+

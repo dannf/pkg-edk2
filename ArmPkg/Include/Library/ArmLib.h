@@ -18,10 +18,16 @@
 
 #include <Uefi/UefiBaseType.h>
 
-#ifdef ARM_CPU_ARMv6
-#include <Chipset/ARM1176JZ-S.h>
+#ifdef MDE_CPU_ARM
+  #ifdef ARM_CPU_ARMv6
+    #include <Chipset/ARM1176JZ-S.h>
+  #else
+    #include <Chipset/ArmV7.h>
+  #endif
+#elif defined(MDE_CPU_AARCH64)
+  #include <Chipset/AArch64.h>
 #else
-#include <Chipset/ArmV7.h>
+ #error "Unknown chipset."
 #endif
 
 typedef enum {
@@ -112,11 +118,11 @@ typedef enum {
 //
 // ARM MP Core IDs
 //
-#define IS_PRIMARY_CORE(MpId) (((MpId) & PcdGet32(PcdArmPrimaryCoreMask)) == PcdGet32(PcdArmPrimaryCore))
 #define ARM_CORE_MASK         0xFF
 #define ARM_CLUSTER_MASK      (0xFF << 8)
 #define GET_CORE_ID(MpId)     ((MpId) & ARM_CORE_MASK)
 #define GET_CLUSTER_ID(MpId)  (((MpId) & ARM_CLUSTER_MASK) >> 8)
+#define GET_MPID(ClusterId, CoreId)   (((ClusterId) << 8) | (CoreId))
 // Get the position of the core for the Stack Offset (4 Core per Cluster)
 //   Position = (ClusterId * 4) + CoreId
 #define GET_CORE_POS(MpId)    ((((MpId) & ARM_CLUSTER_MASK) >> 6) + ((MpId) & ARM_CORE_MASK))
@@ -314,10 +320,22 @@ EFIAPI
 ArmDisableInterrupts (
   VOID
   );
-  
+
 BOOLEAN
 EFIAPI
 ArmGetInterruptState (
+  VOID
+  );
+
+UINTN
+EFIAPI
+ArmDisableIrq (
+  VOID
+  );
+
+VOID
+EFIAPI
+ArmEnableIrq (
   VOID
   );
 
@@ -370,11 +388,11 @@ ArmGetTTBR0BaseAddress (
   VOID
   );
 
-VOID
+RETURN_STATUS
 EFIAPI
 ArmConfigureMmu (
   IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable,
-  OUT VOID                          **TranslationTableBase OPTIONAL,
+  OUT VOID                         **TranslationTableBase OPTIONAL,
   OUT UINTN                         *TranslationTableSize  OPTIONAL
   );
   
@@ -489,6 +507,7 @@ ArmCallWFE (
 VOID
 EFIAPI
 ArmCallWFI (
+
   VOID
   );
 
@@ -514,18 +533,6 @@ VOID
 EFIAPI
 ArmEnableVFP (
   VOID
-  );
-
-UINT32
-EFIAPI
-ArmReadNsacr (
-  VOID
-  );
-
-VOID
-EFIAPI
-ArmWriteNsacr (
-  IN  UINT32   SetWayFormat
   );
 
 UINT32
@@ -556,6 +563,18 @@ UINT32
 EFIAPI
 ArmReadSctlr (
   VOID
+  );
+
+UINTN
+EFIAPI
+ArmReadHVBar (
+  VOID
+  );
+
+VOID
+EFIAPI
+ArmWriteHVBar (
+  IN  UINTN   HypModeVectorBase
   );
 
 #endif // __ARM_LIB__

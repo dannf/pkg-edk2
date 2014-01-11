@@ -580,6 +580,7 @@ HBufferImageRestoreMousePosition (
       // backup the old screen attributes
       //
       Orig                  = HMainEditor.ColorAttributes;
+      New.Data              = 0;
       New.Colors.Foreground = Orig.Colors.Background;
       New.Colors.Background = Orig.Colors.Foreground;
 
@@ -752,10 +753,10 @@ HBufferImageRefresh (
   UINTN                   StartRow;
   UINTN                   EndRow;
   UINTN                   FStartRow;
-  UINTN                   FEndRow;
   UINTN                   Tmp;
 
   Orig                  = HMainEditor.ColorAttributes;
+  New.Data              = 0;
   New.Colors.Foreground = Orig.Colors.Background;
   New.Colors.Background = Orig.Colors.Foreground;
 
@@ -821,7 +822,6 @@ HBufferImageRefresh (
       }
 
       FStartRow = StartRow;
-      FEndRow   = EndRow;
 
       StartRow  = 2 + StartRow - HBufferImage.LowVisibleRow;
       EndRow    = 2 + EndRow - HBufferImage.LowVisibleRow;
@@ -1750,13 +1750,10 @@ HBufferImagePageUp (
   VOID
   )
 {
-  HEFI_EDITOR_LINE  *Line;
   UINTN             FRow;
   UINTN             FCol;
   UINTN             Gap;
   INTN              Retreat;
-
-  Line  = HBufferImage.CurrentLine;
 
   FRow  = HBufferImage.BufferPosition.Row;
   FCol  = HBufferImage.BufferPosition.Column;
@@ -1776,11 +1773,6 @@ HBufferImagePageUp (
   Retreat = Gap;
   Retreat = -Retreat;
 
-  //
-  // get correct line
-  //
-  Line = HMoveLine (Retreat);
-
   FRow -= Gap;
 
   HBufferImageMovePosition (FRow, FCol, HBufferImage.HighBits);
@@ -1798,12 +1790,9 @@ HBufferImageHome (
   VOID
   )
 {
-  HEFI_EDITOR_LINE  *Line;
   UINTN             FRow;
   UINTN             FCol;
   BOOLEAN           HighBits;
-
-  Line = HBufferImage.CurrentLine;
 
   //
   // curosr will at the high bit
@@ -1918,7 +1907,6 @@ HBufferImageDeleteCharacterFromBuffer (
 
   HEFI_EDITOR_LINE  *Line;
   LIST_ENTRY    *Link;
-  UINTN             StartRow;
 
   UINTN             OldFCol;
   UINTN             OldFRow;
@@ -1927,11 +1915,6 @@ HBufferImageDeleteCharacterFromBuffer (
   UINTN             NewPos;
 
   EFI_STATUS        Status;
-
-  //
-  // get the line that start position is at
-  //
-  StartRow  = Pos / 0x10;
 
   Size      = HBufferImageGetTotalSize ();
 
@@ -2054,18 +2037,12 @@ HBufferImageAddCharacterToBuffer (
   HEFI_EDITOR_LINE  *Line;
 
   LIST_ENTRY    *Link;
-  UINTN             StartRow;
 
   UINTN             OldFCol;
   UINTN             OldFRow;
   UINTN             OldPos;
 
   UINTN             NewPos;
-
-  //
-  // get the line that start position is at
-  //
-  StartRow  = Pos / 0x10;
 
   Size      = HBufferImageGetTotalSize ();
 

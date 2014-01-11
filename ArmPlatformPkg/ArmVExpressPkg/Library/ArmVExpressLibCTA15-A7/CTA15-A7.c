@@ -121,7 +121,11 @@ ArmPlatformGetBootMode (
   VOID
   )
 {
-  return BOOT_WITH_FULL_CONFIGURATION;
+  if (MmioRead32(ARM_CTA15A7_SCC_SYSINFO) & ARM_CTA15A7_SCC_SYSINFO_UEFI_RESTORE_DEFAULT_NORFLASH) {
+    return BOOT_WITH_DEFAULT_SETTINGS;
+  } else {
+    return BOOT_WITH_FULL_CONFIGURATION;
+  }
 }
 
 /**
@@ -136,7 +140,7 @@ ArmPlatformInitialize (
   IN  UINTN                     MpId
   )
 {
-  if (!IS_PRIMARY_CORE(MpId)) {
+  if (!ArmPlatformIsPrimaryCore (MpId)) {
     return RETURN_SUCCESS;
   }
 

@@ -43,3 +43,4 @@ HClipBoardGet (
   );
 
 #endif
+

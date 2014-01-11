@@ -2,7 +2,8 @@
   Support a Semi Host file system over a debuggers JTAG
 
   Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  
+  Portions copyright (c) 2011 - 2013, ARM Ltd. All rights reserved.<BR>
+
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -17,6 +18,7 @@
 
 #include <Guid/FileInfo.h>
 #include <Guid/FileSystemInfo.h>
+#include <Guid/FileSystemVolumeLabelInfo.h>
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h> 
@@ -31,6 +33,9 @@
 
 #include "SemihostFs.h"
 
+#define DEFAULT_SEMIHOST_FS_LABEL   L"SemihostFs"
+
+STATIC CHAR16 *mSemihostFsLabel;
 
 EFI_SIMPLE_FILE_SYSTEM_PROTOCOL gSemihostFs = {
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION,
@@ -68,13 +73,15 @@ SEMIHOST_DEVICE_PATH gDevicePath = {
 };
 
 typedef struct {
-  LIST_ENTRY  Link;
-  UINT64      Signature;
-  EFI_FILE    File;
-  CHAR8       *FileName;
-  UINT32      Position;
-  UINT32      SemihostHandle;
-  BOOLEAN     IsRoot;
+  LIST_ENTRY    Link;
+  UINT64        Signature;
+  EFI_FILE      File;
+  CHAR8         *FileName;
+  UINT64        OpenMode;
+  UINT32        Position;
+  UINTN         SemihostHandle;
+  BOOLEAN       IsRoot;
+  EFI_FILE_INFO Info;
 } SEMIHOST_FCB;
 
 #define SEMIHOST_FCB_SIGNATURE      SIGNATURE_32( 'S', 'H', 'F', 'C' )
@@ -133,6 +140,7 @@ VolumeOpen (
   }
   
   RootFcb->IsRoot = TRUE;
+  RootFcb->Info.Attribute = EFI_FILE_READ_ONLY | EFI_FILE_DIRECTORY;
 
   InsertTailList (&gFileList, &RootFcb->Link);
 
@@ -152,33 +160,33 @@ FileOpen (
 {
   SEMIHOST_FCB  *FileFcb = NULL;
   EFI_STATUS    Status   = EFI_SUCCESS;
-  UINT32        SemihostHandle;
+  UINTN         SemihostHandle;
   CHAR8         *AsciiFileName;
-  CHAR8         *AsciiPtr;
-  UINTN         Length;
   UINT32        SemihostMode;
   BOOLEAN       IsRoot;
+  UINTN         Length;
 
   if ((FileName == NULL) || (NewHandle == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  // Semihost interface requires ASCII filesnames
-  Length = StrSize (FileName);
+  // Semihosting does not support directories
+  if (Attributes & EFI_FILE_DIRECTORY) {
+    return EFI_UNSUPPORTED;
+  }
 
-  AsciiFileName = AllocatePool (Length);
+  // Semihost interface requires ASCII filenames
+  AsciiFileName = AllocatePool ((StrLen (FileName) + 1) * sizeof (CHAR8));
   if (AsciiFileName == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
+  UnicodeStrToAsciiStr (FileName, AsciiFileName);
 
-  AsciiPtr = AsciiFileName;
-
-  while (Length--) {
-    *AsciiPtr++ = *FileName++ & 0xFF;
-  }
-
-  if ((AsciiStrCmp (AsciiFileName, "\\") == 0) || (AsciiStrCmp (AsciiFileName, "/") == 0) || (AsciiStrCmp (AsciiFileName, "") == 0)) {
-    // Opening '/', '\', or the NULL pathname is trying to open the root directory
+  if ((AsciiStrCmp (AsciiFileName, "\\") == 0) ||
+      (AsciiStrCmp (AsciiFileName, "/")  == 0) ||
+      (AsciiStrCmp (AsciiFileName, "")   == 0) ||
+      (AsciiStrCmp (AsciiFileName, ".")  == 0)) {
+    // Opening '/', '\', '.', or the NULL pathname is trying to open the root directory
     IsRoot = TRUE;
 
     // Root directory node doesn't have a name.
@@ -218,6 +226,18 @@ FileOpen (
   FileFcb->SemihostHandle = SemihostHandle;
   FileFcb->Position       = 0;
   FileFcb->IsRoot         = IsRoot;
+  FileFcb->OpenMode       = OpenMode;
+
+  if (!IsRoot) {
+    Status = SemihostFileLength (SemihostHandle, &Length);
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+
+    FileFcb->Info.FileSize     = Length;
+    FileFcb->Info.PhysicalSize = Length;
+    FileFcb->Info.Attribute    = Attributes;
+  }
 
   InsertTailList (&gFileList, &FileFcb->Link);
 
@@ -276,8 +296,11 @@ FileDelete (
 
     // Call the semihost interface to delete the file.
     Status = SemihostFileRemove (FileName);
+    if (EFI_ERROR(Status)) {
+      Status = EFI_WARN_DELETE_FAILURE;
+    }
   } else {
-    Status = EFI_UNSUPPORTED;
+    Status = EFI_WARN_DELETE_FAILURE;
   }
 
   return Status;
@@ -296,6 +319,7 @@ FileRead (
   Fcb = SEMIHOST_FCB_FROM_THIS(File);
 
   if (Fcb->IsRoot == TRUE) {
+    // By design, the Semihosting feature does not allow to list files on the host machine.
     Status = EFI_UNSUPPORTED;
   } else {
     Status = SemihostFileRead (Fcb->SemihostHandle, BufferSize, Buffer);
@@ -319,6 +343,12 @@ FileWrite (
   UINTN        WriteSize = *BufferSize;
 
   Fcb = SEMIHOST_FCB_FROM_THIS(File);
+
+  // We cannot write a read-only file
+  if ((Fcb->Info.Attribute & EFI_FILE_READ_ONLY)
+      || !(Fcb->OpenMode & EFI_FILE_MODE_WRITE)) {
+    return EFI_ACCESS_DENIED;
+  }
 
   Status = SemihostFileWrite (Fcb->SemihostHandle, &WriteSize, Buffer);
 
@@ -357,7 +387,7 @@ FileSetPosition (
   )
 {
   SEMIHOST_FCB *Fcb    = NULL;
-  UINT32       Length;
+  UINTN        Length;
   EFI_STATUS   Status;
 
   Fcb = SEMIHOST_FCB_FROM_THIS(File);
@@ -392,8 +422,6 @@ GetFileInfo (
   UINTN           NameSize = 0;
   UINTN           ResultSize;
   UINTN           Index;
-  UINT32          Length;
-  EFI_STATUS      Status;
 
   if (Fcb->IsRoot == TRUE) {
     ResultSize = SIZE_OF_EFI_FILE_INFO + sizeof(CHAR16);
@@ -409,29 +437,19 @@ GetFileInfo (
 
   Info = Buffer;
 
-  // Zero out the structure
-  ZeroMem (Info, SIZE_OF_EFI_FILE_INFO);
+  // Copy the current file info
+  CopyMem (Info, &Fcb->Info, SIZE_OF_EFI_FILE_INFO);
 
   // Fill in the structure
   Info->Size = ResultSize;
 
   if (Fcb->IsRoot == TRUE) {
-    Info->Attribute    = EFI_FILE_READ_ONLY | EFI_FILE_DIRECTORY;
     Info->FileName[0]  = L'\0';
   } else {
-    Status = SemihostFileLength (Fcb->SemihostHandle, &Length);
-    if (EFI_ERROR(Status)) {
-      return Status;
-    }
-
-    Info->FileSize     = Length;
-    Info->PhysicalSize = Length;
-
     for (Index = 0; Index < NameSize; Index++) {
       Info->FileName[Index] = Fcb->FileName[Index];            
     }
   }
-
 
   *BufferSize = ResultSize;    
 
@@ -448,10 +466,9 @@ GetFilesystemInfo (
 {
   EFI_FILE_SYSTEM_INFO    *Info = NULL;
   EFI_STATUS              Status;
-  STATIC CHAR16           Label[] = L"SemihostFs";
-  UINTN                   ResultSize = SIZE_OF_EFI_FILE_SYSTEM_INFO + StrSize(Label);
+  UINTN                   ResultSize = SIZE_OF_EFI_FILE_SYSTEM_INFO + StrSize (mSemihostFsLabel);
     
-  if(*BufferSize >= ResultSize) {
+  if (*BufferSize >= ResultSize) {
     ZeroMem (Buffer, ResultSize);
     Status = EFI_SUCCESS;
         
@@ -463,7 +480,7 @@ GetFilesystemInfo (
     Info->FreeSpace  = 0;
     Info->BlockSize  = 0;
 
-    StrCpy (Info->VolumeLabel, Label);
+    StrCpy (Info->VolumeLabel, mSemihostFsLabel);
   } else {
     Status = EFI_BUFFER_TOO_SMALL;
   }
@@ -480,17 +497,31 @@ FileGetInfo (
   OUT    VOID     *Buffer
   )
 {
-  SEMIHOST_FCB *Fcb = NULL;
-  EFI_STATUS   Status = EFI_UNSUPPORTED;
+  SEMIHOST_FCB *Fcb;
+  EFI_STATUS   Status;
+  UINTN        ResultSize;
   
   Fcb = SEMIHOST_FCB_FROM_THIS(File);
   
-  if (CompareGuid(InformationType, &gEfiFileSystemInfoGuid) != 0) {
-    Status = GetFilesystemInfo(Fcb, BufferSize, Buffer);  
-  } else if (CompareGuid(InformationType, &gEfiFileInfoGuid) != 0) {
-    Status = GetFileInfo(Fcb, BufferSize, Buffer);  
+  if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid) != 0) {
+    Status = GetFilesystemInfo (Fcb, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileInfoGuid) != 0) {
+    Status = GetFileInfo (Fcb, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileSystemVolumeLabelInfoIdGuid) != 0) {
+    ResultSize = StrSize (mSemihostFsLabel);
+
+    if (*BufferSize >= ResultSize) {
+      StrCpy (Buffer, mSemihostFsLabel);
+      Status = EFI_SUCCESS;
+    } else {
+      Status = EFI_BUFFER_TOO_SMALL;
+    }
+
+    *BufferSize = ResultSize;
+  } else {
+    Status = EFI_UNSUPPORTED;
   }
-    
+
   return Status;
 }
 
@@ -502,7 +533,27 @@ FileSetInfo (
   IN VOID     *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS   Status;
+
+  if (Buffer == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = EFI_UNSUPPORTED;
+
+  if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid) != 0) {
+    //Status = SetFilesystemInfo (Fcb, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileInfoGuid) != 0) {
+    //Status = SetFileInfo (Fcb, BufferSize, Buffer);
+  } else if (CompareGuid (InformationType, &gEfiFileSystemVolumeLabelInfoIdGuid) != 0) {
+    if (StrSize (Buffer) > 0) {
+      FreePool (mSemihostFsLabel);
+      mSemihostFsLabel = AllocateCopyPool (StrSize (Buffer), Buffer);
+      Status = EFI_SUCCESS;
+    }
+  }
+
+  return Status;
 }
 
 EFI_STATUS
@@ -510,7 +561,20 @@ FileFlush (
   IN EFI_FILE *File
   )
 {
-  return EFI_SUCCESS;
+  SEMIHOST_FCB *Fcb;
+
+  Fcb = SEMIHOST_FCB_FROM_THIS(File);
+
+  if (Fcb->IsRoot) {
+    return EFI_SUCCESS;
+  } else {
+    if ((Fcb->Info.Attribute & EFI_FILE_READ_ONLY)
+        || !(Fcb->OpenMode & EFI_FILE_MODE_WRITE)) {
+      return EFI_ACCESS_DENIED;
+    } else {
+      return EFI_SUCCESS;
+    }
+  }
 }
 
 EFI_STATUS
@@ -519,17 +583,27 @@ SemihostFsEntryPoint (
   IN EFI_SYSTEM_TABLE     *SystemTable
   )
 {
-  EFI_STATUS    Status = EFI_NOT_FOUND;
+  EFI_STATUS    Status;
+
+  Status = EFI_NOT_FOUND;
 
   if (SemihostConnectionSupported ()) {
+    mSemihostFsLabel = AllocateCopyPool (StrSize (DEFAULT_SEMIHOST_FS_LABEL), DEFAULT_SEMIHOST_FS_LABEL);
+    if (mSemihostFsLabel == NULL) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+
     Status = gBS->InstallMultipleProtocolInterfaces (
                     &gInstallHandle, 
                     &gEfiSimpleFileSystemProtocolGuid, &gSemihostFs, 
                     &gEfiDevicePathProtocolGuid,       &gDevicePath,
                     NULL
                     );
+
+    if (EFI_ERROR(Status)) {
+      FreePool (mSemihostFsLabel);
+    }
   }
  
   return Status;
 }
-

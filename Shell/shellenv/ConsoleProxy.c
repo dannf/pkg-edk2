@@ -1483,7 +1483,7 @@ ProxyConInFlashState (
 
   if (!EFI_ERROR (TimerStatus)) {
     mConInProxy.InputState = INPUT_STATE_DEFAULT;
-    BS->SetTimer (
+    Status = BS->SetTimer (
           mConInProxy.TwoSecondTimeOut,
           TimerCancel,
           0
@@ -1496,9 +1496,11 @@ ProxyConInFlashState (
                   (UINT64) 20000000
                   );
     mConInProxy.InputState = INPUT_STATE_ESC;
+  } else {
+    Status = EFI_UNSUPPORTED;
   }
 
-  return EFI_SUCCESS;
+  return Status;
 }
 
 EFI_STATUS

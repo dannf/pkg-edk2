@@ -110,7 +110,7 @@ SHELL_VAR_CHECK_ITEM    VarCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -144,7 +144,6 @@ Returns:
   EFI_LIST_ENTRY  *ListHead;
   VARIABLE_ID     *Var;
   EFI_STATUS      Status;
-  BOOLEAN         IsString;
   UINT32          Attributes;
 
   //
@@ -175,15 +174,12 @@ Returns:
     // See if it's a shellenv variable
     //
     ListHead  = NULL;
-    IsString  = FALSE;
     if (CompareGuid (&Id, &SEnvEnvId) == 0) {
       ListHead  = &SEnvEnv;
-      IsString  = TRUE;
     }
 
     if (CompareGuid (&Id, &SEnvAliasId) == 0) {
       ListHead  = &SEnvAlias;
-      IsString  = TRUE;
     }
 
     if (ListHead) {

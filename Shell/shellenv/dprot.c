@@ -328,7 +328,6 @@ Returns:
   I2O_DEVICE_PATH           *I2ODevicePath;
   MAC_ADDR_DEVICE_PATH      *MacAddrDevicePath;
   IPv4_DEVICE_PATH          *IPv4DevicePath;
-  IPv6_DEVICE_PATH          *IPv6DevicePath;
   INFINIBAND_DEVICE_PATH    *InfinibandDevicePath;
   UART_DEVICE_PATH          *UartDevicePath;
   VENDOR_DEVICE_PATH        *VendorDevicePath;
@@ -464,7 +463,6 @@ Returns:
     break;
 
   case MSG_IPv6_DP:
-    IPv6DevicePath = (IPv6_DEVICE_PATH *) DevicePath;
     PrintToken (STRING_TOKEN (STR_SHELLENV_DPROT_NOT_AVAIL), HiiEnvHandle);
     break;
 
@@ -1054,6 +1052,8 @@ Returns:
       Magic = EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC;
     } else if (NtHdr->FileHeader.Machine == EFI_IMAGE_MACHINE_X64) {
       Magic = EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC;
+    } else if (NtHdr->FileHeader.Machine == EFI_IMAGE_MACHINE_AARCH64) {
+      Magic = EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC;
     } else {
       Magic = NtHdr->OptionalHeader.Magic;
     }
@@ -1294,6 +1294,8 @@ Returns:
     case EfiIsaAcpiResourceInterrupt:
       PrintToken (STRING_TOKEN (STR_SHELLENV_DPROT_INT), HiiEnvHandle);
       break;
+    case EfiIsaAcpiResourceEndOfList:
+      return;
     }
 
     if (IsaIo->ResourceList->ResourceItem[Index].StartRange == IsaIo->ResourceList->ResourceItem[Index].EndRange) {

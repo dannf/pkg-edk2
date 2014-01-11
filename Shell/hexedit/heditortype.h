@@ -147,8 +147,8 @@ typedef struct _HEFI_EDITOR_MENU_ITEM {
 } HEFI_EDITOR_MENU_ITEM;
 
 typedef struct {
-  UINT32  Foreground : 4;
-  UINT32  Background : 4;
+  UINT8  Foreground : 4;
+  UINT8  Background : 4;
 } HEFI_EDITOR_COLOR_ATTRIBUTES;
 
 typedef union {
@@ -251,3 +251,4 @@ typedef struct {
 } HEFI_EDITOR_GLOBAL_EDITOR;
 
 #endif
+

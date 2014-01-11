@@ -4,7 +4,7 @@ This is EDK style package and the following steps can help to build the package:
    https://efi-shell.tianocore.org/servlets/ProjectDocumentList?folderID=46&expandFolder=46&folderID=53
    
    Alternatively, the EDK Shell source directory can be retrieved from the following SVN address:
-   https://efi-shell.svn.sourceforge.net/svnroot/efi-shell/trunk/Shell
+   https://svn.code.sf.net/p/efi-shell/code/trunk/Shell
    SVN Revision r33 corresponds to Efi-Shell-Dev-Snapshot-20090527.zip development snapshot.
    
 2. Update EDK_SHELL_DIR macro in the [Defines] section in EdkShellPkg.dsc to point to
@@ -15,8 +15,8 @@ This is EDK style package and the following steps can help to build the package:
    To use this file, execute the following command under workspace to build EDK Shell source:
    build -a IA32 -a X64 -a IPF -p EdkShellPkg\EdkShellPkg.dsc
    
-4. If you need to compile for GCC or ARM you will need to apply ShellR61.patch.
-   cd $(WORKSPACE)/Shell and execute patch -p1 < $(WORKSPACE)/EdkShellPkg/ShellR61.patch.
+4. If you need to compile for GCC or ARM you will need to apply ShellR64.patch.
+   cd $(WORKSPACE)/Shell and execute patch -p0 < $(WORKSPACE)/EdkShellPkg/ShellR64.patch.
    If you are using a case sensative file system there are a few case bugs that patch 
    would not fix. Just fix the case of the file to match its usage and you should be 
    able to compile.

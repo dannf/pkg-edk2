@@ -253,3 +253,4 @@ HBufferImageIsInSelectedArea (
   );
 
 #endif
+

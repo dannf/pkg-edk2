@@ -320,13 +320,11 @@ DblkDumpSystemTable (
   VOID                      *AcpiTable;
   VOID                      *Acpi20Table;
   VOID                      *SMBIOSTable;
-  VOID                      *SalSystemTable;
   VOID                      *MpsTable;
 
   AcpiTable       = NULL;
   Acpi20Table     = NULL;
   SMBIOSTable     = NULL;
-  SalSystemTable  = NULL;
   MpsTable        = NULL;
 
   PrintToken (
@@ -356,6 +354,8 @@ DblkDumpSystemTable (
   PrintToken (STRING_TOKEN (STR_DEBUG_BOOT_SERVICES), HiiDblkHandle, (UINT64)(UINTN) Tbl.Sys->BootServices);
 
   EFI64_CODE (
+    VOID                      *SalSystemTable;
+
     Status = LibGetSystemConfigurationTable(&gEfiSalSystemTableGuid, &SalSystemTable);
     if (!EFI_ERROR(Status)) {
       PrintToken (STRING_TOKEN(STR_DEBUG_SAL_SYSTEM_TABLE), HiiDblkHandle, (UINT64)SalSystemTable);

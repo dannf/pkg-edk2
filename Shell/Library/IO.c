@@ -1769,7 +1769,7 @@ Returns:
     //
     // If we need to update the output do so now
     //
-    if (Update != -1) {
+    if (Update != (UINTN)  -1) {
       PrintAt (Column, Row, L"%s%.*s", InStr + Update, Delete, L"");
       Len = StrLen (InStr);
 

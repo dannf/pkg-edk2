@@ -20,16 +20,26 @@
   MODULE_TYPE                    = SEC
   VERSION_STRING                 = 1.0
 
-[Sources.ARM]
-  PrePeiCoreEntryPoint.asm | RVCT
-  PrePeiCoreEntryPoint.S   | GCC
+[Sources.common]
   PrePeiCore.c
   MainUniCore.c
-  SwitchStack.asm      | RVCT
-  SwitchStack.S        | GCC
-  Exception.asm        | RVCT
-  Exception.S          | GCC
-  
+
+[Sources.ARM]
+  Arm/ArchPrePeiCore.c
+  Arm/PrePeiCoreEntryPoint.asm | RVCT
+  Arm/PrePeiCoreEntryPoint.S   | GCC
+  Arm/SwitchStack.asm      | RVCT
+  Arm/SwitchStack.S        | GCC
+  Arm/Exception.asm        | RVCT
+  Arm/Exception.S          | GCC
+
+[Sources.AARCH64]
+  AArch64/ArchPrePeiCore.c
+  AArch64/PrePeiCoreEntryPoint.S   | GCC
+  AArch64/SwitchStack.S            | GCC
+  AArch64/Exception.S              | GCC
+  AArch64/Helper.S                 | GCC
+
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
@@ -56,9 +66,6 @@
 [FixedPcd]
   gArmTokenSpaceGuid.PcdFvBaseAddress
   gArmTokenSpaceGuid.PcdFvSize
-
-  gArmTokenSpaceGuid.PcdArmPrimaryCoreMask
-  gArmTokenSpaceGuid.PcdArmPrimaryCore
 
   gArmPlatformTokenSpaceGuid.PcdCPUCoresStackBase
   gArmPlatformTokenSpaceGuid.PcdCPUCorePrimaryStackSize

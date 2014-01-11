@@ -2,7 +2,7 @@
 This is an example of how a driver might export data to the HII protocol to be
 later utilized by the Setup Protocol
 
-Copyright (c) 2004 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -1766,44 +1766,6 @@ DriverCallback (
   return Status;
 }
 
-
-/**
-  Transfer the binary device path to string.
-
-  @param   DevicePath     The device path info.
-
-  @retval  Device path string info.
-
-**/
-CHAR16  *
-GenerateDevicePathString (
-  EFI_DEVICE_PATH_PROTOCOL *DevicePath
-  )
-{
-  CHAR16                    *String;
-  CHAR16                    *TmpBuf;
-  UINTN                     Index;
-  UINT8                     *Buffer;
-  UINTN                     DevicePathSize;
-
-  //
-  // Compute the size of the device path in bytes
-  //
-  DevicePathSize = GetDevicePathSize (DevicePath);
-  
-  String = AllocateZeroPool ((DevicePathSize * 2 + 1) * sizeof (CHAR16));
-  if (String == NULL) {
-    return NULL;
-  }
-
-  TmpBuf = String;
-  for (Index = 0, Buffer = (UINT8 *)DevicePath; Index < DevicePathSize; Index++) {
-    TmpBuf += UnicodeValueToString (TmpBuf, PREFIX_ZERO | RADIX_HEX, *(Buffer++), 2);
-  }
-
-  return String;
-}
-
 /**
   Main entry for this driver.
 
@@ -1832,6 +1794,7 @@ DriverSampleInit (
   DRIVER_SAMPLE_CONFIGURATION     *Configuration;
   BOOLEAN                         ActionFlag;
   EFI_STRING                      ConfigRequestHdr;
+  EFI_STRING                      NameRequestHdr;
   MY_EFI_VARSTORE_DATA            *VarStoreConfig;
   EFI_INPUT_KEY                   HotKey;
   EFI_FORM_BROWSER_EXTENSION_PROTOCOL *FormBrowserEx;
@@ -1961,7 +1924,7 @@ DriverSampleInit (
   //
   // Update the device path string.
   //
-  NewString = GenerateDevicePathString((EFI_DEVICE_PATH_PROTOCOL*)&mHiiVendorDevicePath0);
+  NewString = ConvertDevicePathToText((EFI_DEVICE_PATH_PROTOCOL*)&mHiiVendorDevicePath0, FALSE, FALSE);
   if (HiiSetString (HiiHandle[0], STRING_TOKEN (STR_DEVICE_PATH), NewString, NULL) == 0) {
     DriverSampleUnload (ImageHandle);
     return EFI_OUT_OF_RESOURCES;
@@ -2002,6 +1965,9 @@ DriverSampleInit (
   ConfigRequestHdr = HiiConstructConfigHdr (&gDriverSampleFormSetGuid, VariableName, DriverHandle[0]);
   ASSERT (ConfigRequestHdr != NULL);
 
+  NameRequestHdr = HiiConstructConfigHdr (&gDriverSampleFormSetGuid, NULL, DriverHandle[0]);
+  ASSERT (NameRequestHdr != NULL);
+
   BufferSize = sizeof (DRIVER_SAMPLE_CONFIGURATION);
   Status = gRT->GetVariable (VariableName, &gDriverSampleFormSetGuid, NULL, &BufferSize, Configuration);
   if (EFI_ERROR (Status)) {
@@ -2020,12 +1986,18 @@ DriverSampleInit (
     // EFI variable for NV config doesn't exit, we should build this variable
     // based on default values stored in IFR
     //
+    ActionFlag = HiiSetToDefaults (NameRequestHdr, EFI_HII_DEFAULT_CLASS_STANDARD);
+    ASSERT (ActionFlag);
+
     ActionFlag = HiiSetToDefaults (ConfigRequestHdr, EFI_HII_DEFAULT_CLASS_STANDARD);
     ASSERT (ActionFlag);
   } else {
     //
     // EFI variable does exist and Validate Current Setting
     //
+    ActionFlag = HiiValidateSettings (NameRequestHdr);
+    ASSERT (ActionFlag);
+
     ActionFlag = HiiValidateSettings (ConfigRequestHdr);
     ASSERT (ActionFlag);
   }

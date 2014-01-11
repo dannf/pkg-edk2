@@ -1,7 +1,7 @@
 /** @file
 Utility functions for expression evaluation.
 
-Copyright (c) 2007 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2007 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -787,7 +787,7 @@ FORM_BROWSER_FORM *
 IdToForm (
   IN FORM_BROWSER_FORMSET  *FormSet,
   IN UINT16                FormId
-)
+  )
 {
   LIST_ENTRY         *Link;
   FORM_BROWSER_FORM  *Form;
@@ -1446,7 +1446,6 @@ IfrMid (
   UINTN          Base;
   UINTN          Length;
   CHAR16         *SubString;
-  UINT8          *Buffer;
   UINT16         BufferLen;
 
   ZeroMem (Value, sizeof (Value));
@@ -1502,7 +1501,6 @@ IfrMid (
 
     FreePool (String);
   } else {
-    Buffer    = Value[2].Buffer;
     BufferLen = Value[2].BufferLen;
     
     Result->Type = EFI_IFR_TYPE_BUFFER;
@@ -2107,7 +2105,7 @@ GetQuestionValueFromForm (
   //
   FormSet = AllocateZeroPool (sizeof (FORM_BROWSER_FORMSET));
   ASSERT (FormSet != NULL);
-  Status = InitializeFormSet(HiiHandle, FormSetGuid, FormSet, FALSE);
+  Status = InitializeFormSet(HiiHandle, FormSetGuid, FormSet);
   if (EFI_ERROR (Status)) {
     GetTheVal = FALSE;
     goto Done;
@@ -2470,22 +2468,21 @@ EvaluateExpression (
       }
 
       if (OpCode->DevicePath != 0) {
+        Value->Type = EFI_IFR_TYPE_UNDEFINED;
+
         StrPtr = GetToken (OpCode->DevicePath, FormSet->HiiHandle);
-        if (StrPtr == NULL) {
-          Value->Type = EFI_IFR_TYPE_UNDEFINED;
-          break;
+        if (StrPtr != NULL && mPathFromText != NULL) {
+          DevicePath = mPathFromText->ConvertTextToDevicePath(StrPtr);
+          if (DevicePath != NULL && GetQuestionValueFromForm(DevicePath, NULL, &OpCode->Guid, Value->Value.u16, &QuestionVal)) {
+            Value = &QuestionVal;
+          }
+          if (DevicePath != NULL) {
+            FreePool (DevicePath);
+          }
         }
 
-        DevicePath = ConvertDevicePathFromText(StrPtr);
-
-        if (!GetQuestionValueFromForm(DevicePath, NULL, &OpCode->Guid, Value->Value.u16, &QuestionVal)){
-          Value->Type = EFI_IFR_TYPE_UNDEFINED;
-        } else {
-          Value = &QuestionVal;
-        }
-
-        if (DevicePath != NULL) {
-          FreePool (DevicePath);
+        if (StrPtr != NULL) {
+          FreePool (StrPtr);
         }
       } else if (CompareGuid (&OpCode->Guid, &gZeroGuid) != 0) {
         if (!GetQuestionValueFromForm(NULL, FormSet->HiiHandle, &OpCode->Guid, Value->Value.u16, &QuestionVal)){
@@ -2803,7 +2800,7 @@ EvaluateExpression (
             for (Index = 0; Index < OpCode->ValueWidth; Index ++, TempBuffer --) {
               StrPtr += UnicodeValueToString (StrPtr, PREFIX_ZERO | RADIX_HEX, *TempBuffer, 2);
             }
-            Status = SetValueByName (OpCode->VarStorage, OpCode->ValueName, NameValue, GetSetValueWithEditBuffer);
+            Status = SetValueByName (OpCode->VarStorage, OpCode->ValueName, NameValue, GetSetValueWithEditBuffer, NULL);
             FreePool (NameValue);
             if (!EFI_ERROR (Status)) {
               Data1.Value.b = TRUE;

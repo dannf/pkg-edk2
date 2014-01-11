@@ -105,7 +105,7 @@ SHELL_VAR_CHECK_ITEM    RedirCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -126,7 +126,7 @@ SHELL_VAR_CHECK_ITEM    ExitCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -1270,7 +1270,6 @@ Returns:
   SHELLENV_INTERNAL_COMMAND     InternalCommand;
   EFI_HANDLE                    NewImage;
   EFI_FILE_HANDLE               Script;
-  BOOLEAN                       ShowHelp;
   BOOLEAN                       ConsoleContextSaved;
   EFI_HANDLE                    SavedConsoleInHandle;
   EFI_HANDLE                    SavedConsoleOutHandle;
@@ -1292,7 +1291,6 @@ Returns:
   //
   Status                        = EFI_SUCCESS;
   ParentShell                   = NULL;
-  ShowHelp                      = FALSE;
   ConsoleContextSaved           = FALSE;
   SavedConIn                    = NULL;
   SavedConOut                   = NULL;
@@ -1557,7 +1555,7 @@ Returns:
           );
 
     EFI_SHELL_APP_INIT (ParentImageHandle, ParentSystemTable);
-    if (-2 == Status) {
+    if ((EFI_STATUS) -2 == Status) {
       //
       // if status = -2 we assume that a nested shell has just exited.
       //
@@ -1613,7 +1611,9 @@ Returns:
 Done:
   DEBUG_CODE (
     if (EFI_ERROR (Status) && Output) {
-      if ((Status == -1) || (Status == -2) || (Status == EFI_REDIRECTION_NOT_ALLOWED)
+      if ((Status == (EFI_STATUS) -1) 
+          || (Status == (EFI_STATUS) -2) 
+          || (Status == EFI_REDIRECTION_NOT_ALLOWED)
           || (Status == EFI_REDIRECTION_SAME)) {
       } else {
         PrintToken (STRING_TOKEN (STR_SHELLENV_EXEC_EXIT_STATUS_CODE), HiiEnvHandle, Status);
@@ -1674,7 +1674,7 @@ Done:
     PrintToken (STRING_TOKEN (STR_SHELLENV_REDIR_NOT_ALLOWED), HiiEnvHandle);
   }
 
-  if (Status != -1) {
+  if (Status != (EFI_STATUS) -1) {
     //
     // Don't Print on a "Disconnect All" exit. The ConOut device may not exist
     //
@@ -2638,7 +2638,6 @@ Returns:
   EFI_STATUS          Status;
   CHAR16              *Alias;
   CHAR16              *SubstituteStr;
-  CHAR16              *OldSubstituteStr;
   BOOLEAN             Literal;
   BOOLEAN             Comment;
   BOOLEAN             IsVariable;
@@ -2735,7 +2734,6 @@ Returns:
         // Try to find a shell enviroment variable
         //
         QuoteCount        = 0;
-        OldSubstituteStr  = SubstituteStr;
         SubstituteStr     = Str + 1;
         while (*SubstituteStr != '%' && *SubstituteStr != 0 && (!IsWhiteSpace (*SubstituteStr) || ParseState->Quote)) {
           if (*SubstituteStr == '"') {

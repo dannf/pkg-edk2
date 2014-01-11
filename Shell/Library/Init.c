@@ -1,6 +1,6 @@
 /*++
 
-Copyright (c) 2005 - 2009, Intel Corporation                                                         
+Copyright (c) 2005 - 2013, Intel Corporation                                                         
 All rights reserved. This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution. The full text of the license may be found at         
@@ -51,6 +51,7 @@ Returns:
 
 --*/
 {
+  EFI_STATUS                      ReturnStatus;
   EFI_STATUS                      Status;
   UINTN                           NumHandles;
   UINTN                           Index;
@@ -72,7 +73,7 @@ Returns:
 
   Iso639Language = (BOOLEAN) (ProtocolGuid == &gEfiUnicodeCollationProtocolGuid);
 
-  Status = EFI_UNSUPPORTED;
+  ReturnStatus = EFI_UNSUPPORTED;
   for (Index = 0; Index < NumHandles; Index++) {
     //
     // Open Unicode Collation Protocol
@@ -101,14 +102,14 @@ Returns:
     if (BestLanguage != NULL) {
       FreePool (BestLanguage);
       UnicodeInterface = Uci;
-      Status = EFI_SUCCESS;
+      ReturnStatus = EFI_SUCCESS;
       break;
     }
   }
 
   FreePool (Handles);
 
-  return Status;
+  return ReturnStatus;
 }
 
 

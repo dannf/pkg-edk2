@@ -320,13 +320,11 @@ DumpMemSystemTable (
   VOID                      *AcpiTable;
   VOID                      *Acpi20Table;
   VOID                      *SMBIOSTable;
-  VOID                      *SalSystemTable;
   VOID                      *MpsTable;
 
   AcpiTable       = NULL;
   Acpi20Table     = NULL;
   SMBIOSTable     = NULL;
-  SalSystemTable  = NULL;
   MpsTable        = NULL;
 
   PrintToken (
@@ -356,7 +354,9 @@ DumpMemSystemTable (
   PrintToken (STRING_TOKEN (STR_DEBUG_BOOT_SERVICES), HiiMemHandle, (UINT64)(UINTN) Tbl.Sys->BootServices);
 
   EFI64_CODE (
-    Status = LibGetSystemConfigurationTable(&gEfiSalSystemTableGuid, &SalSystemTable);
+     VOID                      *SalSystemTable;
+  
+     Status = LibGetSystemConfigurationTable(&gEfiSalSystemTableGuid, &SalSystemTable);
     if (!EFI_ERROR(Status)) {
       PrintToken (STRING_TOKEN(STR_DEBUG_SAL_SYSTEM_TABLE), HiiMemHandle, (UINT64)SalSystemTable);
     }

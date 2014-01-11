@@ -3,6 +3,7 @@
 #
 #
 # Copyright (c) 2007, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2012, ARM Ltd. All rights reserved.<BR>
 #
 #    This program and the accompanying materials
 #    are licensed and made available under the terms and conditions of the BSD License
@@ -69,6 +70,7 @@
   PrePiLib|EmbeddedPkg/Library/PrePiLib/PrePiLib.inf
   
   SerialPortLib|EmbeddedPkg/Library/TemplateSerialPortLib/TemplateSerialPortLib.inf
+  SerialPortExtLib|EmbeddedPkg/Library/TemplateSerialPortExtLib/TemplateSerialPortExtLib.inf
   RealTimeClockLib|EmbeddedPkg/Library/TemplateRealTimeClockLib/TemplateRealTimeClockLib.inf
   EfiResetSystemLib|EmbeddedPkg/Library/TemplateResetSystemLib/TemplateResetSystemLib.inf
   GdbSerialLib|EmbeddedPkg/Library/GdbSerialLib/GdbSerialLib.inf
@@ -165,7 +167,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000000
   gEfiMdePkgTokenSpaceGuid.PcdPciExpressBaseAddress|0xE0000000
   gEfiMdePkgTokenSpaceGuid.PcdFSBClock|200000000
-  gEmbeddedTokenSpaceGuid.PcdEmbeddedAutomaticBootCommand|L""|VOID*|2
+  gEmbeddedTokenSpaceGuid.PcdEmbeddedAutomaticBootCommand|L""
   gEmbeddedTokenSpaceGuid.PcdEmbeddedDefaultTextColor|0x07
   gEmbeddedTokenSpaceGuid.PcdEmbeddedMemVariableStoreSize|0x10000
   

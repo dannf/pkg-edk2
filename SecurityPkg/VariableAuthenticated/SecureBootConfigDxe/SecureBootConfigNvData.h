@@ -1,7 +1,7 @@
 /** @file
   Header file for NV data structure definition.
 
-Copyright (c) 2011 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2011 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials 
 are licensed and made available under the terms and conditions of the BSD License 
 which accompanies this distribution.  The full text of the license may be found at 
@@ -55,6 +55,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define KEY_VALUE_NO_SAVE_AND_EXIT_KEK        0x1009
 #define KEY_VALUE_SAVE_AND_EXIT_DBX           0x100a
 #define KEY_VALUE_NO_SAVE_AND_EXIT_DBX        0x100b
+#define KEY_HIDE_SECURE_BOOT                  0x100c
 
 #define KEY_SECURE_BOOT_OPTION                0x1100
 #define KEY_SECURE_BOOT_PK_OPTION             0x1101
@@ -106,7 +107,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 // Nv Data structure referenced by IFR
 //
 typedef struct {
-  BOOLEAN SecureBootState; //Secure Boot Disable/Enable;
+  BOOLEAN AttemptSecureBoot;  //Attempt to enable/disable Secure Boot.
   BOOLEAN HideSecureBoot;  //Hiden Attempt Secure Boot
   CHAR16  SignatureGuid[SECURE_BOOT_GUID_STORAGE_SIZE];
   BOOLEAN PhysicalPresent; //If a Physical Present User;

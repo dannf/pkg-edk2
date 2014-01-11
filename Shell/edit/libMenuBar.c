@@ -189,7 +189,6 @@ MainMenuBarRefresh (
   CHAR16                *NameString;
   CHAR16                *FunctionKeyString;
   UINTN                 BufferSize;
-  EFI_STATUS            Status;
 
   //
   // variable initialization
@@ -220,9 +219,9 @@ MainMenuBarRefresh (
     FunctionKeyString = AllocatePool (BufferSize);
 
 #if (EFI_SPECIFICATION_VERSION < 0x0002000A)
-    Status            = Hii->GetString (Hii, gEditHiiHandle, Item->NameToken, FALSE, NULL, &BufferSize, NameString);
+    Hii->GetString (Hii, gEditHiiHandle, Item->NameToken, FALSE, NULL, &BufferSize, NameString);
 #else
-    Status            = LibGetString (gEditHiiHandle, Item->NameToken, NameString, &BufferSize);
+    LibGetString (gEditHiiHandle, Item->NameToken, NameString, &BufferSize);
 #endif
 
     Width             = max ((StrLen (NameString) + 6), 20);
@@ -232,9 +231,9 @@ MainMenuBarRefresh (
     }
 
 #if (EFI_SPECIFICATION_VERSION < 0x0002000A)
-    Status = Hii->GetString (Hii, gEditHiiHandle, Item->FunctionKeyToken, FALSE, NULL, &BufferSize, FunctionKeyString);
+    Hii->GetString (Hii, gEditHiiHandle, Item->FunctionKeyToken, FALSE, NULL, &BufferSize, FunctionKeyString);
 #else
-    Status = LibGetString (gEditHiiHandle, Item->FunctionKeyToken, FunctionKeyString, &BufferSize);
+    LibGetString (gEditHiiHandle, Item->FunctionKeyToken, FunctionKeyString, &BufferSize);
 #endif    
     PrintAt (Col - 1, Row - 1, L"%E%s%N  %H%s%N  ", FunctionKeyString, NameString);
 

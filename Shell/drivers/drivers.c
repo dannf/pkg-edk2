@@ -68,7 +68,7 @@ SHELL_VAR_CHECK_ITEM    DriversCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -133,7 +133,6 @@ Returns:
   EFI_HANDLE                   *ControllerHandleBuffer;
   UINTN                        ChildControllerHandleCount;
   CHAR16                       *ImageName;
-  BOOLEAN                      IsHelp;
   SHELL_VAR_CHECK_CODE         RetCode;
   CHAR16                       *Useful;
   SHELL_ARG_LIST               *Item;
@@ -143,7 +142,6 @@ Returns:
   Language                = NULL;
   DriverImageHandleCount  = 0;
   DriverImageHandleBuffer = NULL;
-  IsHelp                  = FALSE;
   ZeroMem (&ChkPck, sizeof (SHELL_VAR_CHECK_PACKAGE));
 
   EFI_SHELL_APP_INIT (ImageHandle, SystemTable);

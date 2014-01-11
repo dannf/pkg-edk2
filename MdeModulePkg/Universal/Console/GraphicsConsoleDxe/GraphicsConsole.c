@@ -1,7 +1,7 @@
 /** @file
   This is the main routine for initializing the Graphics Console support routines.
 
-Copyright (c) 2006 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -57,7 +57,7 @@ GRAPHICS_CONSOLE_MODE_DATA mGraphicsConsoleModeData[] = {
 EFI_HII_DATABASE_PROTOCOL   *mHiiDatabase;
 EFI_HII_FONT_PROTOCOL       *mHiiFont;
 EFI_HII_HANDLE              mHiiHandle;
-EFI_EVENT                   mHiiRegistration;
+VOID                        *mHiiRegistration;
 
 EFI_GUID             mFontPackageListGuid = {0xf5f219d3, 0x7006, 0x4648, {0xac, 0x8d, 0xd6, 0x1d, 0xfb, 0x7b, 0xc6, 0xad}};
 
@@ -453,8 +453,8 @@ GraphicsConsoleControllerDriverStart (
                            &Info
                            );
         if (!EFI_ERROR (Status)) {
-          if ((Info->HorizontalResolution >= HorizontalResolution) &&
-              (Info->VerticalResolution >= VerticalResolution)) {
+          if ((Info->HorizontalResolution > HorizontalResolution) ||
+              ((Info->HorizontalResolution == HorizontalResolution) && (Info->VerticalResolution > VerticalResolution))) {
             HorizontalResolution = Info->HorizontalResolution;
             VerticalResolution   = Info->VerticalResolution;
             ModeNumber           = ModeIndex;
@@ -497,6 +497,19 @@ GraphicsConsoleControllerDriverStart (
         }
       }
     }
+    if (ModeNumber != Private->GraphicsOutput->Mode->Mode) {
+      //
+      // Current graphics mode is not set or is not set to the mode which we has found,
+      // set the new graphic mode.
+      //
+      Status = Private->GraphicsOutput->SetMode (Private->GraphicsOutput, ModeNumber);
+      if (EFI_ERROR (Status)) {
+        //
+        // The mode set operation failed
+        //
+        goto Error;
+      }
+    }
   } else if (FeaturePcdGet (PcdUgaConsumeSupport)) {
     //
     // At first try to set user-defined resolution
@@ -535,6 +548,8 @@ GraphicsConsoleControllerDriverStart (
       }
     }
   }
+
+  DEBUG ((EFI_D_INFO, "GraphicsConsole video resolution %d x %d\n", HorizontalResolution, VerticalResolution));
 
   //
   // Initialize the mode which GraphicsConsole supports.
@@ -791,42 +806,14 @@ EfiLocateHiiProtocol (
   VOID
   )
 {
-  EFI_HANDLE  Handle;
-  UINTN       Size;
   EFI_STATUS  Status;
 
-  //
-  // There should only be one - so buffer size is this
-  //
-  Size = sizeof (EFI_HANDLE);
-
-  Status = gBS->LocateHandle (
-                  ByProtocol,
-                  &gEfiHiiDatabaseProtocolGuid,
-                  NULL,
-                  &Size,
-                  (VOID **) &Handle
-                  );
-
+  Status = gBS->LocateProtocol (&gEfiHiiDatabaseProtocolGuid, NULL, (VOID **) &mHiiDatabase);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = gBS->HandleProtocol (
-                  Handle,
-                  &gEfiHiiDatabaseProtocolGuid,
-                  (VOID **) &mHiiDatabase
-                  );
-
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Status = gBS->HandleProtocol (
-                  Handle,
-                  &gEfiHiiFontProtocolGuid,
-                  (VOID **) &mHiiFont
-                  );
+  Status = gBS->LocateProtocol (&gEfiHiiFontProtocolGuid, NULL, (VOID **) &mHiiFont);
   return Status;
 }
 
@@ -2042,7 +2029,9 @@ RegisterFontPackage (
                   NULL,
                   (VOID **) &HiiDatabase
                   );
-  ASSERT_EFI_ERROR (Status);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
 
   //
   // Add 4 bytes to the header for entire length for HiiAddPackages use only.

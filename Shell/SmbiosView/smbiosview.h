@@ -84,3 +84,4 @@ GetShowTypeString (
 extern UINT8  gShowType;
 
 #endif
+

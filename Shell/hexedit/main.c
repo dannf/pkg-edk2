@@ -67,7 +67,7 @@ SHELL_VAR_CHECK_ITEM    HexeditCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE)0
   }
 };
 
@@ -421,7 +421,9 @@ Returns:
               FALSE
               );
     break;
-
+  case NEW_FILE:
+    Status = EFI_UNSUPPORTED;
+    break;
   }
 
   if (!EFI_ERROR (Status)) {

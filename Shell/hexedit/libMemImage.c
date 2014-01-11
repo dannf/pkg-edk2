@@ -225,9 +225,6 @@ Returns:
   CHAR16                          *Str;
   HEFI_EDITOR_LINE                *Line;
 
-  HEFI_EDITOR_ACTIVE_BUFFER_TYPE  BufferTypeBackup;
-
-  BufferTypeBackup        = HBufferImage.BufferType;
   HBufferImage.BufferType = MEM_BUFFER;
 
   Buffer                  = AllocatePool (Size);
@@ -344,8 +341,6 @@ Returns:
   EFI_STATUS                      Status;
   VOID                            *Buffer;
 
-  HEFI_EDITOR_ACTIVE_BUFFER_TYPE  BufferTypeBackup;
-
   //
   // not modified, so directly return
   //
@@ -353,7 +348,6 @@ Returns:
     return EFI_SUCCESS;
   }
 
-  BufferTypeBackup        = HBufferImage.BufferType;
   HBufferImage.BufferType = MEM_BUFFER;
 
   Buffer                  = AllocatePool (Size);

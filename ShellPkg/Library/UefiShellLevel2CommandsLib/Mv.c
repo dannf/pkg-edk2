@@ -1,7 +1,8 @@
 /** @file
   Main file for mv shell level 2 function.
 
-  Copyright (c) 2009 - 2011, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2013, Hewlett-Packard Development Company, L.P.
+  Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -135,10 +136,9 @@ GetDestinationLocation(
 {
   EFI_SHELL_FILE_INFO       *DestList;
   EFI_SHELL_FILE_INFO       *Node;
-  EFI_STATUS                Status;
   CHAR16                    *DestPath;
-  CHAR16                    *TempLocation;
   UINTN                     NewSize;
+  UINTN                     CurrentSize;
 
   DestList = NULL;
   DestPath = NULL;
@@ -153,18 +153,25 @@ GetDestinationLocation(
     }
     StrCpy(DestPath, Cwd);
     while (PathRemoveLastItem(DestPath)) ;
+
+    //
+    // Append DestDir beyond '\' which may be present
+    //
+    CurrentSize = StrSize(DestPath);
+    StrnCatGrow(&DestPath, &CurrentSize, &DestDir[1], 0);
+
     *DestPathPointer =  DestPath;
     return (SHELL_SUCCESS);
   }
   //
   // get the destination path
   //
-  Status = ShellOpenFileMetaArg((CHAR16*)DestDir, EFI_FILE_MODE_WRITE|EFI_FILE_MODE_READ|EFI_FILE_MODE_CREATE, &DestList);
+  ShellOpenFileMetaArg((CHAR16*)DestDir, EFI_FILE_MODE_WRITE|EFI_FILE_MODE_READ|EFI_FILE_MODE_CREATE, &DestList);
   if (DestList == NULL || IsListEmpty(&DestList->Link)) {
     //
     // Not existing... must be renaming
     //
-    if ((TempLocation = StrStr(DestDir, L":")) == NULL) {
+    if (StrStr(DestDir, L":") == NULL) {
       if (Cwd == NULL) {
         ShellCloseFileMetaArg(&DestList);
         return (SHELL_INVALID_PARAMETER);
@@ -405,23 +412,18 @@ ValidateAndMoveFiles(
       //
       if (EFI_ERROR(Status)) {
         ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_GEN_ERR_UK), gShellLevel2HiiHandle, Status);
-        //
-        // move failed
-        //
-        switch(Status){
-          default:
-            ShellStatus = SHELL_INVALID_PARAMETER;
-          case EFI_SECURITY_VIOLATION:
-            ShellStatus = SHELL_SECURITY_VIOLATION;
-          case EFI_WRITE_PROTECTED:
-            ShellStatus = SHELL_WRITE_PROTECTED;
-          case EFI_OUT_OF_RESOURCES:
-            ShellStatus = SHELL_OUT_OF_RESOURCES;
-          case EFI_DEVICE_ERROR:
-            ShellStatus = SHELL_DEVICE_ERROR;
-          case EFI_ACCESS_DENIED:
-            ShellStatus = SHELL_ACCESS_DENIED;
-        } // switch
+        ShellStatus = SHELL_INVALID_PARAMETER;
+        if (Status == EFI_SECURITY_VIOLATION) {
+          ShellStatus = SHELL_SECURITY_VIOLATION;
+        } else if (Status == EFI_WRITE_PROTECTED) {
+          ShellStatus = SHELL_WRITE_PROTECTED;
+        } else if (Status == EFI_OUT_OF_RESOURCES) {
+          ShellStatus = SHELL_OUT_OF_RESOURCES;
+        } else if (Status == EFI_DEVICE_ERROR) {
+          ShellStatus = SHELL_DEVICE_ERROR;
+        } else if (Status == EFI_ACCESS_DENIED) {
+          ShellStatus = SHELL_ACCESS_DENIED;
+        }
       } else {
         ShellPrintEx(-1, -1, L"%s", HiiResultOk);
       }

@@ -54,7 +54,7 @@ SHELL_VAR_CHECK_ITEM    RmCheckList[] = {
     NULL,
     0,
     0,
-    FALSE
+    (SHELL_VAR_CHECK_FLAG_TYPE) FALSE
   }
 };
 

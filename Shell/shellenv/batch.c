@@ -2388,7 +2388,6 @@ Returns:
 
 --*/
 {
-  BOOLEAN             EndOfFile;
   EFI_STATUS          Status;
   UINTN               BufSize;
   CHAR16              *CommandLine;
@@ -2396,7 +2395,6 @@ Returns:
   EFI_BATCH_STATEMENT *Stmt;
   ENV_SHELL_INTERFACE NewShell;
   UINTN               GotoTargetStatus;
-  UINTN               SkippedIfCount;
   BOOLEAN             EchoStateValid;
   BOOLEAN             EchoState;
   EFI_STATUS          ExecuteResult;
@@ -2409,7 +2407,6 @@ Returns:
   //  Initialize
   //
   Status          = EFI_SUCCESS;
-  EndOfFile       = FALSE;
   BufSize         = 0;
   EchoStateValid  = FALSE;
   EchoState       = FALSE;
@@ -2467,14 +2464,6 @@ Returns:
             Link,
             EFI_BATCH_SCRIPT_SIGNATURE
             );
-
-  //
-  // Iterate through the file, reading a line at a time and executing each
-  // line as a shell command.  Nested shell scripts will come through
-  // this code path recursively.
-  //
-  EndOfFile       = FALSE;
-  SkippedIfCount  = 0;
 
   while (1) {
     //
@@ -2681,7 +2670,7 @@ Returns:
       LastError = ExecuteResult;
     }
 
-    if (ExecuteResult == -1) {
+    if (ExecuteResult == (EFI_STATUS) -1) {
       SE2->DecrementShellNestingLevel ();
       if (SE2->IsRootShell ()) {
         goto Done;
@@ -2774,7 +2763,7 @@ Done:
     Status = _ResumePreviousMode ();
   }
 
-  if (LastError == -1) {
+  if (LastError == (UINTN) -1) {
     return LastError;
   } else {
     return Status;

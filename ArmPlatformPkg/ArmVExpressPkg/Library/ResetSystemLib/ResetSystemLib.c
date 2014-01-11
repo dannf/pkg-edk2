@@ -1,11 +1,11 @@
 /** @file
   Template library implementation to support ResetSystem Runtime call.
-  
+
   Fill in the templates with what ever makes you system reset.
 
-
   Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  
+  Copyright (c) 2013, ARM Ltd. All rights reserved.<BR>
+
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -46,12 +46,19 @@ LibResetSystem (
   )
 {
   switch (ResetType) {
+  case EfiResetPlatformSpecific:
+    // Map the platform specific reset as reboot
   case EfiResetWarm:
     // Map a warm reset into a cold reset
   case EfiResetCold:
-  case EfiResetShutdown:
     // Send the REBOOT function to the platform microcontroller
     ArmPlatformSysConfigSet (SYS_CFG_REBOOT, 0);
+
+    // We should never be here
+    while(1);
+  case EfiResetShutdown:
+    // Send the SHUTDOWN function to the platform microcontroller
+    ArmPlatformSysConfigSet (SYS_CFG_SHUTDOWN, 0);
 
     // We should never be here
     while(1);

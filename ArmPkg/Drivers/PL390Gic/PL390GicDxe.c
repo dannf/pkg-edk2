@@ -2,7 +2,7 @@
 
 Copyright (c) 2009, Hewlett-Packard Company. All rights reserved.<BR>
 Portions copyright (c) 2010, Apple Inc. All rights reserved.<BR>
-Portions copyright (c) 2011-2012, ARM Ltd. All rights reserved.<BR> 
+Portions copyright (c) 2011-2013, ARM Ltd. All rights reserved.<BR> 
 
 This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
@@ -24,6 +24,7 @@ Abstract:
 
 #include <PiDxe.h>
 
+#include <Library/ArmLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
@@ -345,13 +346,6 @@ InterruptDxeInitialize (
   EFI_CPU_ARCH_PROTOCOL   *Cpu;
   UINT32                  CpuTarget;
   
-  // Check PcdGicPrimaryCoreId has been set in case the Primary Core is not the core 0 of Cluster 0
-  DEBUG_CODE_BEGIN();
-  if ((PcdGet32(PcdArmPrimaryCore) != 0) && (PcdGet32 (PcdGicPrimaryCoreId) == 0)) {
-    DEBUG((EFI_D_WARN,"Warning: the PCD PcdGicPrimaryCoreId does not seem to be set up for the configuration.\n"));
-  }
-  DEBUG_CODE_END();
-
   // Make sure the Interrupt Controller Protocol is not already installed in the system.
   ASSERT_PROTOCOL_ALREADY_INSTALLED (NULL, &gHardwareInterruptProtocolGuid);
 
@@ -370,11 +364,26 @@ InterruptDxeInitialize (
       );
   }
 
-  // Configure interrupts for Primary Cpu
-  CpuTarget = (1 << PcdGet32 (PcdGicPrimaryCoreId));
-  CpuTarget |= (CpuTarget << 24) | (CpuTarget << 16) | (CpuTarget << 8);
-  for (Index = 0; Index < (mGicNumInterrupts / 4); Index++) {
-    MmioWrite32 (PcdGet32(PcdGicDistributorBase) + ARM_GIC_ICDIPTR + (Index*4), CpuTarget);
+  //
+  // Targets the interrupts to the Primary Cpu
+  //
+
+  // Only Primary CPU will run this code. We can identify our GIC CPU ID by reading
+  // the GIC Distributor Target register. The 8 first GICD_ITARGETSRn are banked to each
+  // connected CPU. These 8 registers hold the CPU targets fields for interrupts 0-31.
+  // More Info in the GIC Specification about "Interrupt Processor Targets Registers"
+  //
+  // Read the first Interrupt Processor Targets Register (that corresponds to the 4
+  // first SGIs)
+  CpuTarget = MmioRead32 (PcdGet32 (PcdGicDistributorBase) + ARM_GIC_ICDIPTR);
+
+  // The CPU target is a bit field mapping each CPU to a GIC CPU Interface. This value
+  // is 0 when we run on a uniprocessor platform.
+  if (CpuTarget != 0) {
+    // The 8 first Interrupt Processor Targets Registers are read-only
+    for (Index = 8; Index < (mGicNumInterrupts / 4); Index++) {
+      MmioWrite32 (PcdGet32 (PcdGicDistributorBase) + ARM_GIC_ICDIPTR + (Index * 4), CpuTarget);
+    }
   }
 
   // Set binary point reg to 0x7 (no preemption)
@@ -408,13 +417,13 @@ InterruptDxeInitialize (
   //
   // Unregister the default exception handler.
   //
-  Status = Cpu->RegisterInterruptHandler(Cpu, EXCEPT_ARM_IRQ, NULL);
+  Status = Cpu->RegisterInterruptHandler(Cpu, ARM_ARCH_EXCEPTION_IRQ, NULL);
   ASSERT_EFI_ERROR(Status);
 
   //
   // Register to receive interrupts
   //
-  Status = Cpu->RegisterInterruptHandler(Cpu, EXCEPT_ARM_IRQ, IrqInterruptHandler);
+  Status = Cpu->RegisterInterruptHandler(Cpu, ARM_ARCH_EXCEPTION_IRQ, IrqInterruptHandler);
   ASSERT_EFI_ERROR(Status);
 
   // Register for an ExitBootServicesEvent

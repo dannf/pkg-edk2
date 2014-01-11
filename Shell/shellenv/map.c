@@ -185,7 +185,7 @@ SHELL_VAR_CHECK_ITEM    MapCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -206,7 +206,7 @@ SHELL_VAR_CHECK_ITEM      CdCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -2630,7 +2630,6 @@ Returns:
   UINTN           Index;
   UINTN           HandleNo;
   BOOLEAN         EchoStatus;
-  BOOLEAN         Same;
   CHAR16          MapStr[8];
   EFI_LIST_ENTRY  *Link;
   EFI_LIST_ENTRY  *Head;
@@ -2729,11 +2728,6 @@ Returns:
       }
     }
   }
-  //
-  // New code, try to make mapping list sequence unchanged if current device
-  // paths and original device paths are the same
-  //
-  Same = FALSE;
 
   //
   // Load handle table and handle protocol info so that we can get

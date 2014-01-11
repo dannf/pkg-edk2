@@ -51,7 +51,7 @@ SHELL_VAR_CHECK_ITEM    ConnectCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -78,7 +78,7 @@ SHELL_VAR_CHECK_ITEM          DisconnectCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -105,7 +105,7 @@ SHELL_VAR_CHECK_ITEM          ReconnectCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 

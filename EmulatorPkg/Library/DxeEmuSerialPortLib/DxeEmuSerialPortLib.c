@@ -116,4 +116,3 @@ SerialPortPoll (
   return gEmuThunk->PollStdIn ();
 }
 
-

@@ -120,10 +120,15 @@ Returns:
   // backup the old screen attributes
   //
   Orig                  = MainEditor.ColorAttributes;
+
+  New.Data              = 0;
   New.Colors.Foreground = Orig.Colors.Background;
   New.Colors.Background = Orig.Colors.Foreground;
 
-  Out->SetAttribute (Out, New.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (New.Colors.Foreground, New.Colors.Background)
+         );
 
   //
   // clear the old title bar
@@ -142,7 +147,10 @@ Returns:
     );
 
   if (MainEditor.FileBuffer->FileName == NULL) {
-    Out->SetAttribute (Out, Orig.Data);
+    Out->SetAttribute (
+           Out,
+           EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+           );
     FileBufferRestorePosition ();
     return EFI_SUCCESS;
   }
@@ -204,7 +212,10 @@ Returns:
   //
   // restore the old attribute
   //
-  Out->SetAttribute (Out, Orig.Data);
+  Out->SetAttribute (
+         Out,
+         EFI_TEXT_ATTR (Orig.Colors.Foreground, Orig.Colors.Background)
+         );
 
   //
   // restore edit area cursor position

@@ -33,13 +33,17 @@ InitMmu (
   ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable;
   VOID                          *TranslationTableBase;
   UINTN                         TranslationTableSize;
+  RETURN_STATUS                 Status;
 
   // Get Virtual Memory Map from the Platform Library
   ArmPlatformGetVirtualMemoryMap (&MemoryTable);
 
   //Note: Because we called PeiServicesInstallPeiMemory() before to call InitMmu() the MMU Page Table resides in
   //      DRAM (even at the top of DRAM as it is the first permanent memory allocation)
-  ArmConfigureMmu (MemoryTable, &TranslationTableBase, &TranslationTableSize);
+  Status = ArmConfigureMmu (MemoryTable, &TranslationTableBase, &TranslationTableSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "Error: Failed to enable MMU\n"));
+  }
 }
 
 /*++
@@ -97,8 +101,8 @@ MemoryPeim (
       PcdGet32 (PcdSystemMemorySize)
   );
 
-  SystemMemoryTop = PcdGet32 (PcdSystemMemoryBase) + PcdGet32 (PcdSystemMemorySize);
-  FdTop = PcdGet32(PcdFdBaseAddress) + PcdGet32(PcdFdSize);
+  SystemMemoryTop = (EFI_PHYSICAL_ADDRESS)PcdGet32 (PcdSystemMemoryBase) + (EFI_PHYSICAL_ADDRESS)PcdGet32 (PcdSystemMemorySize);
+  FdTop = (EFI_PHYSICAL_ADDRESS)PcdGet32(PcdFdBaseAddress) + (EFI_PHYSICAL_ADDRESS)PcdGet32(PcdFdSize);
 
   // EDK2 does not have the concept of boot firmware copied into DRAM. To avoid the DXE
   // core to overwrite this area we must mark the region with the attribute non-present

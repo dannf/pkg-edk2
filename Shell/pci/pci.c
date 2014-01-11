@@ -334,7 +334,7 @@ PCIE_EXPLAIN_STRUCT PcieExplainList[] = {
   {
     0,
     0,
-    0,
+    (PCIE_CAPREG_FIELD_WIDTH)0,
     NULL,
     PcieExplainTypeMax
   }
@@ -375,7 +375,7 @@ SHELL_VAR_CHECK_ITEM    PciCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -1237,7 +1237,7 @@ Returns:
     PrintToken (STRING_TOKEN (STR_PCI2_SINGLE_FUNCTION), HiiHandle);
   }
 
-  HeaderType = (UINT8) (Common->HeaderType & 0x7f);
+  HeaderType = (PCI_HEADER_TYPE) (Common->HeaderType & 0x7f);
   switch (HeaderType) {
   case PciDevice:
     PrintToken (STRING_TOKEN (STR_PCI2_PCI_DEVICE), HiiHandle);
@@ -1300,6 +1300,9 @@ Returns:
               );
     CapPtr = ConfigSpace->NonCommon.CardBus.CapabilitiesPtr;
     break;
+
+  default:
+    Status = EFI_UNSUPPORTED;
   }
   //
   // If Status bit4 is 1, dump or explain capability structure

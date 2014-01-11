@@ -203,6 +203,9 @@ Returns:
   case MEM_BUFFER:
     HMemImageBackup ();
     break;
+
+  case NO_BUFFER:
+    break;
   }
 
   return EFI_SUCCESS;
@@ -587,7 +590,7 @@ HBufferImageRestoreMousePosition (
   UINT8                   Value;
   BOOLEAN                 HighBits;
 
-  Line = NULL;
+  Line     = NULL;
   if (HMainEditor.MouseSupported) {
 
     if (HBufferImageMouseNeedRefresh) {
@@ -610,6 +613,7 @@ HBufferImageRestoreMousePosition (
       // backup the old screen attributes
       //
       Orig                  = HMainEditor.ColorAttributes;
+      New.Data              = 0;
       New.Colors.Foreground = Orig.Colors.Background;
       New.Colors.Background = Orig.Colors.Foreground;
 
@@ -801,10 +805,10 @@ Returns:
   UINTN                   StartRow;
   UINTN                   EndRow;
   UINTN                   FStartRow;
-  UINTN                   FEndRow;
   UINTN                   Tmp;
 
   Orig                  = HMainEditor.ColorAttributes;
+  New.Data              = 0;
   New.Colors.Foreground = Orig.Colors.Background;
   New.Colors.Background = Orig.Colors.Foreground;
 
@@ -870,7 +874,6 @@ Returns:
       }
 
       FStartRow = StartRow;
-      FEndRow   = EndRow;
 
       StartRow  = TEXT_START_ROW + StartRow - HBufferImage.LowVisibleRow;
       EndRow    = TEXT_START_ROW + EndRow - HBufferImage.LowVisibleRow;
@@ -980,6 +983,10 @@ HBufferImageRead (
   case MEM_BUFFER:
     Status = HMemImageRead (MemOffset, MemSize, Recover);
     break;
+
+  case NO_BUFFER:
+    Status = EFI_UNSUPPORTED;
+    break;
   }
 
   if (EFI_ERROR (Status)) {
@@ -1029,6 +1036,10 @@ HBufferImageSave (
   //
   case MEM_BUFFER:
     Status = HMemImageSave (MemOffset, MemSize);
+    break;
+
+  case NO_BUFFER:
+    Status = EFI_UNSUPPORTED;
     break;
   }
 
@@ -1967,13 +1978,10 @@ Returns:
 
 --*/
 {
-  HEFI_EDITOR_LINE  *Line;
   UINTN             FRow;
   UINTN             FCol;
   UINTN             Gap;
   INTN              Retreat;
-
-  Line  = HBufferImage.CurrentLine;
 
   FRow  = HBufferImage.BufferPosition.Row;
   FCol  = HBufferImage.BufferPosition.Column;
@@ -1996,7 +2004,7 @@ Returns:
   //
   // get correct line
   //
-  Line = HMoveLine (Retreat);
+  HMoveLine (Retreat);
 
   FRow -= Gap;
 
@@ -2025,12 +2033,9 @@ Returns:
 
 --*/
 {
-  HEFI_EDITOR_LINE  *Line;
   UINTN             FRow;
   UINTN             FCol;
   BOOLEAN           HighBits;
-
-  Line = HBufferImage.CurrentLine;
 
   //
   // curosr will at the high bit
@@ -2157,7 +2162,6 @@ Returns:
 
   HEFI_EDITOR_LINE  *Line;
   EFI_LIST_ENTRY    *Link;
-  UINTN             StartRow;
 
   UINTN             OldFCol;
   UINTN             OldFRow;
@@ -2166,11 +2170,6 @@ Returns:
   UINTN             NewPos;
 
   EFI_STATUS        Status;
-
-  //
-  // get the line that start position is at
-  //
-  StartRow  = Pos / 0x10;
 
   Size      = HBufferImageGetTotalSize ();
 
@@ -2300,18 +2299,12 @@ Returns:
   HEFI_EDITOR_LINE  *Line;
 
   EFI_LIST_ENTRY    *Link;
-  UINTN             StartRow;
 
   UINTN             OldFCol;
   UINTN             OldFRow;
   UINTN             OldPos;
 
   UINTN             NewPos;
-
-  //
-  // get the line that start position is at
-  //
-  StartRow  = Pos / 0x10;
 
   Size      = HBufferImageGetTotalSize ();
 

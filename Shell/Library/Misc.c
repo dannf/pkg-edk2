@@ -1730,6 +1730,8 @@ Returns:
     return L"X64";
   case EFI_IMAGE_MACHINE_IA64:
     return L"IA64";
+  case EFI_IMAGE_MACHINE_AARCH64:
+    return L"AARCH64";
   default:
     return L"UNKNOWN";
   }
@@ -2545,3 +2547,4 @@ Returns:
 
   return Status;
 }
+

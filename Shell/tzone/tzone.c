@@ -65,7 +65,7 @@ SHELL_VAR_CHECK_ITEM    TzoneCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -258,7 +258,6 @@ InitializeTZone (
   BOOLEAN                 bList;
   BOOLEAN                 bSet;
   INT16                   nValue;
-  UINTN                   uValueSize;
   SHELL_VAR_CHECK_CODE    RetCode;
   CHAR16                  *Useful;
   SHELL_VAR_CHECK_PACKAGE ChkPck;
@@ -269,7 +268,6 @@ InitializeTZone (
   bList         = FALSE;
   bSet          = FALSE;
   nValue        = 0;
-  uValueSize    = sizeof (INTN);
   ZeroMem (&ChkPck, sizeof (SHELL_VAR_CHECK_PACKAGE));
   ZeroMem (&Time, sizeof (EFI_TIME));
   //

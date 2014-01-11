@@ -1,7 +1,7 @@
 /** @file
   Provides interface to shell internal functions for shell commands.
 
-  Copyright (c) 2009 - 2011, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -13,12 +13,6 @@
 **/
 
 #include "UefiShellCommandLib.h"
-
-/// The tag for use in identifying UNICODE files.
-/// If the file is UNICODE, the first 16 bits of the file will equal this value.
-enum {
-  gUnicodeFileTag = 0xFEFF
-};
 
 // STATIC local variables
 STATIC SHELL_COMMAND_INTERNAL_LIST_ENTRY  mCommandList;
@@ -36,7 +30,6 @@ STATIC BUFFER_LIST                        mFileHandleList;
 
 // global variables required by library class.
 EFI_UNICODE_COLLATION_PROTOCOL    *gUnicodeCollation            = NULL;
-EFI_DEVICE_PATH_TO_TEXT_PROTOCOL  *gDevPathToText               = NULL;
 SHELL_MAP_LIST                    gShellMapList;
 SHELL_MAP_LIST                    *gShellCurDir                 = NULL;
 
@@ -60,12 +53,6 @@ CommandInit(
   EFI_STATUS Status;
   if (gUnicodeCollation == NULL) {
     Status = gBS->LocateProtocol(&gEfiUnicodeCollation2ProtocolGuid, NULL, (VOID**)&gUnicodeCollation);
-    if (EFI_ERROR(Status)) {
-      return (EFI_DEVICE_ERROR);
-    }
-  }
-  if (gDevPathToText == NULL) {
-    Status = gBS->LocateProtocol(&gEfiDevicePathToTextProtocolGuid, NULL, (VOID**)&gDevPathToText);
     if (EFI_ERROR(Status)) {
       return (EFI_DEVICE_ERROR);
     }
@@ -190,7 +177,6 @@ ShellCommandLibDestructor (
   }
 
   gUnicodeCollation            = NULL;
-  gDevPathToText               = NULL;
   gShellCurDir                 = NULL;
 
   return (RETURN_SUCCESS);
@@ -334,6 +320,16 @@ ShellCommandRegisterCommandName (
   )
 {
   SHELL_COMMAND_INTERNAL_LIST_ENTRY *Node;
+  SHELL_COMMAND_INTERNAL_LIST_ENTRY *Command;
+  SHELL_COMMAND_INTERNAL_LIST_ENTRY *PrevCommand;
+  INTN LexicalMatchValue;
+
+  //
+  // Initialize local variables.
+  //
+  Command = NULL;
+  PrevCommand = NULL;
+  LexicalMatchValue = 0;
 
   //
   // ASSERTs for NULL parameters
@@ -392,9 +388,40 @@ ShellCommandRegisterCommandName (
   }
 
   //
-  // add the new struct to the list
+  // Insert a new entry on top of the list
   //
-  InsertTailList (&mCommandList.Link, &Node->Link);
+  InsertHeadList (&mCommandList.Link, &Node->Link);
+
+  //
+  // Move a new registered command to its sorted ordered location in the list
+  //
+  for (Command = (SHELL_COMMAND_INTERNAL_LIST_ENTRY *)GetFirstNode (&mCommandList.Link),
+        PrevCommand = (SHELL_COMMAND_INTERNAL_LIST_ENTRY *)GetFirstNode (&mCommandList.Link)
+        ; !IsNull (&mCommandList.Link, &Command->Link)
+        ; Command = (SHELL_COMMAND_INTERNAL_LIST_ENTRY *)GetNextNode (&mCommandList.Link, &Command->Link)) {
+
+    //
+    // Get Lexical Comparison Value between PrevCommand and Command list entry
+    //
+    LexicalMatchValue = gUnicodeCollation->StriColl (
+                                             gUnicodeCollation,
+                                             PrevCommand->CommandString,
+                                             Command->CommandString
+                                             );
+
+    //
+    // Swap PrevCommand and Command list entry if PrevCommand list entry
+    // is alphabetically greater than Command list entry
+    //
+    if (LexicalMatchValue > 0){
+      Command = (SHELL_COMMAND_INTERNAL_LIST_ENTRY *) SwapListEntries (&PrevCommand->Link, &Command->Link);
+    } else if (LexicalMatchValue < 0) {
+      //
+      // PrevCommand entry is lexically lower than Command entry
+      //
+      break;
+    }
+  }
 
   return (RETURN_SUCCESS);
 }

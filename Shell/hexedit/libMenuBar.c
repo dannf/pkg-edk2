@@ -222,7 +222,6 @@ Returns:
   CHAR16                *NameString;
   CHAR16                *FunctionKeyString;
   UINTN                 BufferSize;
-  EFI_STATUS            Status;
 
   //
   // variable initialization
@@ -255,9 +254,9 @@ Returns:
     FunctionKeyString = AllocatePool (BufferSize);
 
 #if (EFI_SPECIFICATION_VERSION < 0x0002000A)
-    Status            = Hii->GetString (Hii, gHexEditHiiHandle, Item->NameToken, FALSE, NULL, &BufferSize, NameString);
+    Hii->GetString (Hii, gHexEditHiiHandle, Item->NameToken, FALSE, NULL, &BufferSize, NameString);
 #else
-    Status            = LibGetString (gHexEditHiiHandle, Item->NameToken, NameString, &BufferSize);
+    LibGetString (gHexEditHiiHandle, Item->NameToken, NameString, &BufferSize);
 #endif
 
     Width             = max ((StrLen (NameString) + 6), 18);
@@ -267,9 +266,9 @@ Returns:
     }
 
 #if (EFI_SPECIFICATION_VERSION < 0x0002000A)
-    Status = Hii->GetString (Hii, gHexEditHiiHandle, Item->FunctionKeyToken, FALSE, NULL, &BufferSize, FunctionKeyString);
+    Hii->GetString (Hii, gHexEditHiiHandle, Item->FunctionKeyToken, FALSE, NULL, &BufferSize, FunctionKeyString);
 #else
-    Status = LibGetString (gHexEditHiiHandle, Item->FunctionKeyToken, FunctionKeyString, &BufferSize);
+    LibGetString (gHexEditHiiHandle, Item->FunctionKeyToken, FunctionKeyString, &BufferSize);
 #endif
     if (Index >= 10) {
       PrintAt (Col - 1, Row - 1, L"%E%s%N %H%s%N  ", FunctionKeyString, NameString);
@@ -1138,7 +1137,6 @@ Returns:
         // the file won't be saved
         //
         return EFI_SUCCESS;
-        break;
 
       case L'c':
       case L'C':
@@ -1567,7 +1565,6 @@ Returns:
 --*/
 {
   UINTN             Index;
-  HEFI_EDITOR_LINE  *Line;
   EFI_LIST_ENTRY    *Link;
   UINT8             *Buffer;
   UINTN             Count;
@@ -1591,8 +1588,6 @@ Returns:
   for (Index = 0; Index < (HMainEditor.SelectEnd - 1) / 0x10; Index++) {
     Link = Link->Flink;
   }
-
-  Line    = CR (Link, HEFI_EDITOR_LINE, Link, EFI_EDITOR_LINE_LIST);
 
   Count   = HMainEditor.SelectEnd - HMainEditor.SelectStart + 1;
   Buffer  = AllocatePool (Count);

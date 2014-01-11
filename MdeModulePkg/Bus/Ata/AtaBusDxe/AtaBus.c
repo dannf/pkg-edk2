@@ -4,7 +4,7 @@
   This file implements protocol interfaces: Driver Binding protocol,
   Block IO protocol and DiskInfo protocol.
 
-  Copyright (c) 2009 - 2012, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -90,7 +90,8 @@ ATA_DEVICE gAtaDeviceTemplate = {
   NULL,                        // ControllerNameTable
   {L'\0', },                   // ModelName
   {NULL, NULL},                // AtaTaskList
-  {NULL, NULL}                 // AtaSubTaskList
+  {NULL, NULL},                // AtaSubTaskList
+  FALSE                        // Abort
 };
 
 /**
@@ -172,7 +173,7 @@ ReleaseAtaResources (
        ) {
       DelEntry = Entry;
       Entry    = Entry->ForwardLink;
-      SubTask  = ATA_AYNS_SUB_TASK_FROM_ENTRY (DelEntry);
+      SubTask  = ATA_ASYN_SUB_TASK_FROM_ENTRY (DelEntry);
 
       RemoveEntryList (DelEntry);
       FreeAtaSubTask (SubTask);
@@ -187,7 +188,7 @@ ReleaseAtaResources (
        ) {
       DelEntry = Entry;
       Entry    = Entry->ForwardLink;
-      AtaTask     = ATA_AYNS_TASK_FROM_ENTRY (DelEntry);
+      AtaTask  = ATA_ASYN_TASK_FROM_ENTRY (DelEntry);
 
       RemoveEntryList (DelEntry);
       FreePool (AtaTask);
@@ -630,11 +631,36 @@ AtaBusDriverBindingSupported (
   }
 
   //
+  // Test to see if this ATA Pass Thru Protocol is for a LOGICAL channel
+  //
+  if ((AtaPassThru->Mode->Attributes & EFI_ATA_PASS_THRU_ATTRIBUTES_LOGICAL) == 0) {
+    //
+    // Close the I/O Abstraction(s) used to perform the supported test
+    //
+    gBS->CloseProtocol (
+          Controller,
+          &gEfiAtaPassThruProtocolGuid,
+          This->DriverBindingHandle,
+          Controller
+          );
+    return EFI_UNSUPPORTED;
+  }
+
+  //
   // Test RemainingDevicePath is valid or not.
   //
   if ((RemainingDevicePath != NULL) && !IsDevicePathEnd (RemainingDevicePath)) {
     Status = AtaPassThru->GetDevice (AtaPassThru, RemainingDevicePath, &Port, &PortMultiplierPort);
     if (EFI_ERROR (Status)) {
+      //
+      // Close the I/O Abstraction(s) used to perform the supported test
+      //
+      gBS->CloseProtocol (
+            Controller,
+            &gEfiAtaPassThruProtocolGuid,
+            This->DriverBindingHandle,
+            Controller
+            );
       return Status;
     }
   }
@@ -1191,6 +1217,8 @@ AtaBlockIoResetEx (
   OldTpl = gBS->RaiseTPL (TPL_CALLBACK);
 
   AtaDevice = ATA_DEVICE_FROM_BLOCK_IO2 (This);
+
+  AtaTerminateNonBlockingTask (AtaDevice);
 
   Status = ResetAtaDevice (AtaDevice);
 

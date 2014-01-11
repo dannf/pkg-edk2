@@ -45,7 +45,6 @@ SecondaryMain (
   UINT32                  CoreId;
   VOID                    (*SecondaryStart)(VOID);
   UINTN                   SecondaryEntryAddr;
-  UINTN                   AcknowledgedCoreId;
 
   ClusterId = GET_CLUSTER_ID(MpId);
   CoreId    = GET_CORE_ID(MpId);
@@ -88,8 +87,8 @@ SecondaryMain (
     SecondaryEntryAddr = MmioRead32 (ArmCoreInfoTable[Index].MailboxGetAddress);
 
     // Acknowledge the interrupt and send End of Interrupt signal.
-    ArmGicAcknowledgeInterrupt (PcdGet32(PcdGicDistributorBase), PcdGet32(PcdGicInterruptInterfaceBase), &AcknowledgedCoreId, NULL);
-  } while ((SecondaryEntryAddr == 0) && (AcknowledgedCoreId != PcdGet32 (PcdGicPrimaryCoreId)));
+    ArmGicAcknowledgeInterrupt (PcdGet32(PcdGicDistributorBase), PcdGet32(PcdGicInterruptInterfaceBase), NULL, NULL);
+  } while (SecondaryEntryAddr == 0);
 
   // Jump to secondary core entry point.
   SecondaryStart = (VOID (*)())SecondaryEntryAddr;
@@ -111,17 +110,10 @@ PrimaryMain (
   UINTN                       TemporaryRamBase;
   UINTN                       TemporaryRamSize;
 
-  // Check PcdGicPrimaryCoreId has been set in case the Primary Core is not the core 0 of Cluster 0
-  DEBUG_CODE_BEGIN();
-  if ((PcdGet32(PcdArmPrimaryCore) != 0) && (PcdGet32 (PcdGicPrimaryCoreId) == 0)) {
-    DEBUG((EFI_D_WARN,"Warning: the PCD PcdGicPrimaryCoreId does not seem to be set up for the configuration.\n"));
-  }
-  DEBUG_CODE_END();
-
   CreatePpiList (&PpiListSize, &PpiList);
 
   // Enable the GIC Distributor
-  ArmGicEnableDistributor(PcdGet32(PcdGicDistributorBase));
+  ArmGicEnableDistributor (PcdGet32(PcdGicDistributorBase));
 
   // If ArmVe has not been built as Standalone then we need to wake up the secondary cores
   if (FeaturePcdGet (PcdSendSgiToBringUpSecondaryCores)) {
@@ -155,5 +147,5 @@ PrimaryMain (
   SecCoreData.StackSize              = (TemporaryRamBase + TemporaryRamSize) - (UINTN)SecCoreData.StackBase;
 
   // Jump to PEI core entry point
-  (PeiCoreEntryPoint)(&SecCoreData, PpiList);
+  PeiCoreEntryPoint (&SecCoreData, PpiList);
 }

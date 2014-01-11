@@ -709,7 +709,7 @@ Returns:
   //
   SE2->IncrementShellNestingLevel ();
 
-  while (Status != -1) {
+  while (Status != (EFI_STATUS) -1) {
     Status = NShellPrompt (ImageHandle);
     EFI_NT_EMULATOR_CODE (
       //

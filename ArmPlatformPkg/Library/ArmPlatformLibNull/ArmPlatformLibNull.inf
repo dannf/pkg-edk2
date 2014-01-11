@@ -33,6 +33,13 @@
   ArmPlatformLibNull.c
   ArmPlatformLibNullMem.c
 
+[Sources.Arm]
+  Arm/ArmPlatformHelper.S    | GCC
+  Arm/ArmPlatformHelper.asm  | RVCT
+
+[Sources.AArch64]
+  AArch64/ArmPlatformHelper.S | GCC
+
 [FixedPcd]
   gArmTokenSpaceGuid.PcdSystemMemoryBase
   gArmTokenSpaceGuid.PcdSystemMemorySize

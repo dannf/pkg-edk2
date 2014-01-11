@@ -166,7 +166,6 @@ TestOperation (
       }
     }
     return (FALSE);
-    break;
   case OperatorUnsignedLessThan:
   case OperatorLessThan:
     if (ForceStringCompare || !ShellIsHexOrDecimalNumber(Compare1, FALSE, FALSE) || !ShellIsHexOrDecimalNumber(Compare2, FALSE, FALSE)) {
@@ -202,7 +201,6 @@ TestOperation (
 
     }
     return (FALSE);
-    break;
   case OperatorEqual:
     if (ForceStringCompare || !ShellIsHexOrDecimalNumber(Compare1, FALSE, FALSE) || !ShellIsHexOrDecimalNumber(Compare2, FALSE, FALSE)) {
       //
@@ -230,7 +228,6 @@ TestOperation (
       }
     }
     return (FALSE);
-    break;
   case OperatorNotEqual:
     if (ForceStringCompare || !ShellIsHexOrDecimalNumber(Compare1, FALSE, FALSE) || !ShellIsHexOrDecimalNumber(Compare2, FALSE, FALSE)) {
       //
@@ -258,7 +255,6 @@ TestOperation (
       }
     }
     return (FALSE);
-    break;
   case OperatorUnsignedGreaterOrEqual:
   case OperatorGreatorOrEqual:
     if (ForceStringCompare || !ShellIsHexOrDecimalNumber(Compare1, FALSE, FALSE) || !ShellIsHexOrDecimalNumber(Compare2, FALSE, FALSE)) {
@@ -293,7 +289,6 @@ TestOperation (
       }
     }
     return (FALSE);
-    break;
   case OperatorLessOrEqual:
   case OperatorUnsignedLessOrEqual:
     if (ForceStringCompare || !ShellIsHexOrDecimalNumber(Compare1, FALSE, FALSE) || !ShellIsHexOrDecimalNumber(Compare2, FALSE, FALSE)) {
@@ -328,7 +323,6 @@ TestOperation (
       }
     }
     return (FALSE);
-    break;
   default:
     ASSERT(FALSE);
     return (FALSE);
@@ -662,12 +656,9 @@ BuildNextStatement (
   OUT END_TAG_TYPE  *EndTag
   )
 {
-  CHAR16    *Buffer;
-  UINTN     BufferSize;
-
   *EndTag = EndTagMax;
 
-  for(Buffer = NULL, BufferSize = 0
+  for(
     ; ParameterNumber < gEfiShellParametersProtocol->Argc
     ; ParameterNumber++
    ) {

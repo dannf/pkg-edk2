@@ -628,7 +628,7 @@ SHELL_VAR_CHECK_ITEM    DHCheckList[] = {
     NULL,
     0,
     0,
-    FALSE
+    (SHELL_VAR_CHECK_FLAG_TYPE) FALSE
   }
 };
 
@@ -2660,8 +2660,6 @@ Returns:
 
 --*/
 {
-  EFI_STATUS                Status;
-
   DEVICEPATH_INFO           *DevicePathInfo;
 
   UINTN                     Index;
@@ -2688,7 +2686,7 @@ Returns:
   //
   // Establish current device path info list
   //
-  Status = LibLocateHandle (
+  LibLocateHandle (
             ByProtocol,
             Protocol,
             NULL,

@@ -57,12 +57,16 @@ COMPONENT_TYPE  = LIBRARY
 [sources.EBC]
   Ebc/math.c
   Ebc/initplat.c
-  
+
 [sources.x64]
   IPF/math.c
   IA32/initplat.c
 
 [sources.ARM]
+  IPF/math.c
+  IA32/initplat.c
+
+[sources.AARCH64]
   IPF/math.c
   IA32/initplat.c
 
@@ -84,5 +88,12 @@ COMPONENT_TYPE  = LIBRARY
   EfiProtocolLib
   EfiGuidLib
   EdkGuidLib
+
+[libraries.ARM]
+  CompilerIntrinsicsLib
+
+[libraries.AARCH64]
+  CompilerIntrinsicsLib
+
 
 [nmake.common]

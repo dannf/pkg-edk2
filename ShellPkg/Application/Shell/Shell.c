@@ -1,7 +1,8 @@
 /** @file
   This is THE shell (application)
 
-  Copyright (c) 2009 - 2012, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2013, Hewlett-Packard Development Company, L.P.
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -296,11 +297,28 @@ UefiMain (
         0,
         gST->ConOut->Mode->CursorRow,
         NULL,
-        STRING_TOKEN (STR_VER_OUTPUT_MAIN),
+        STRING_TOKEN (STR_VER_OUTPUT_MAIN_SHELL),
         ShellInfoObject.HiiHandle,
         SupportLevel[PcdGet8(PcdShellSupportLevel)],
         gEfiShellProtocol->MajorVersion,
-        gEfiShellProtocol->MinorVersion,
+        gEfiShellProtocol->MinorVersion
+       );
+
+      ShellPrintHiiEx (
+        -1,
+        -1,
+        NULL,
+        STRING_TOKEN (STR_VER_OUTPUT_MAIN_SUPPLIER),
+        ShellInfoObject.HiiHandle,
+        (CHAR16 *) PcdGetPtr (PcdShellSupplier)
+       );
+
+      ShellPrintHiiEx (
+        -1,
+        -1,
+        NULL,
+        STRING_TOKEN (STR_VER_OUTPUT_MAIN_UEFI),
+        ShellInfoObject.HiiHandle,
         (gST->Hdr.Revision&0xffff0000)>>16,
         (gST->Hdr.Revision&0x0000ffff),
         gST->FirmwareVendor,
@@ -381,7 +399,7 @@ UefiMain (
         Status = DoStartupScript(ShellInfoObject.ImageDevPath, ShellInfoObject.FileDevPath);
       }
 
-      if (!ShellCommandGetExit() && (PcdGet8(PcdShellSupportLevel) >= 3 || PcdGetBool(PcdShellForceConsole)) && !EFI_ERROR(Status) && !ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoConsoleIn) {
+      if (!ShellInfoObject.ShellInitSettings.BitUnion.Bits.Exit && !ShellCommandGetExit() && (PcdGet8(PcdShellSupportLevel) >= 3 || PcdGetBool(PcdShellForceConsole)) && !EFI_ERROR(Status) && !ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoConsoleIn) {
         //
         // begin the UI waiting loop
         //
@@ -642,6 +660,7 @@ STATIC CONST SHELL_PARAM_ITEM mShellParamList[] = {
   {L"-noversion",     TypeFlag},
   {L"-startup",       TypeFlag},
   {L"-delay",         TypeValue},
+  {L"-_exit",         TypeFlag},
   {NULL, TypeMax}
   };
 
@@ -749,6 +768,7 @@ ProcessCommandLine(
   ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoMap        = ShellCommandLineGetFlag(Package, L"-nomap");
   ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoVersion    = ShellCommandLineGetFlag(Package, L"-noversion");
   ShellInfoObject.ShellInitSettings.BitUnion.Bits.Delay        = ShellCommandLineGetFlag(Package, L"-delay");
+  ShellInfoObject.ShellInitSettings.BitUnion.Bits.Exit         = ShellCommandLineGetFlag(Package, L"-_exit");
 
   ShellInfoObject.ShellInitSettings.Delay = 5;
 
@@ -837,12 +857,12 @@ DoStartupScript(
   //
   // print out our warning and see if they press a key
   //
-  for ( Status = EFI_UNSUPPORTED, Delay = ShellInfoObject.ShellInitSettings.Delay * 10
+  for ( Status = EFI_UNSUPPORTED, Delay = ShellInfoObject.ShellInitSettings.Delay
       ; Delay != 0 && EFI_ERROR(Status)
       ; Delay--
      ){
-    ShellPrintHiiEx(0, gST->ConOut->Mode->CursorRow, NULL, STRING_TOKEN (STR_SHELL_STARTUP_QUESTION), ShellInfoObject.HiiHandle, Delay/10);
-    gBS->Stall (100000);
+    ShellPrintHiiEx(0, gST->ConOut->Mode->CursorRow, NULL, STRING_TOKEN (STR_SHELL_STARTUP_QUESTION), ShellInfoObject.HiiHandle, Delay);
+    gBS->Stall (1000000);
     if (!ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoConsoleIn) {
       Status = gST->ConIn->ReadKeyStroke (gST->ConIn, &Key);
     }
@@ -1083,6 +1103,7 @@ ShellConvertVariables (
   CHAR16              *NewCommandLine1;
   CHAR16              *NewCommandLine2;
   CHAR16              *Temp;
+  CHAR16              *Temp2;
   UINTN               ItemSize;
   CHAR16              *ItemTemp;
   SCRIPT_FILE         *CurrentScriptFile;
@@ -1141,15 +1162,6 @@ ShellConvertVariables (
   }
 
   //
-  // Quick out if none were found...
-  //
-  if (NewSize == StrSize(OriginalCommandLine)) {
-    ASSERT(Temp == NULL);
-    Temp = StrnCatGrow(&Temp, NULL, OriginalCommandLine, 0);
-    return (Temp);
-  }
-
-  //
   // now do the replacements...
   //
   NewCommandLine1 = AllocateZeroPool(NewSize);
@@ -1180,8 +1192,51 @@ ShellConvertVariables (
     ShellCopySearchAndReplace(NewCommandLine1, NewCommandLine2, NewSize, AliasListNode->Alias, AliasListNode->CommandString, TRUE, FALSE);
     StrCpy(NewCommandLine1, NewCommandLine2);
     }
+
+    //
+    // Remove non-existant environment variables in scripts only
+    //
+    for (Temp = NewCommandLine1 ; Temp != NULL ; ) {
+      Temp = StrStr(Temp, L"%");
+      if (Temp == NULL) {
+        break;
+      }
+      while (*(Temp - 1) == L'^') {
+        Temp = StrStr(Temp + 1, L"%");
+        if (Temp == NULL) {
+          break;
+       }
+      }
+      if (Temp == NULL) {
+        break;
+      }
+      
+      Temp2 = StrStr(Temp + 1, L"%");
+      if (Temp2 == NULL) {
+        break;
+      }
+      while (*(Temp2 - 1) == L'^') {
+        Temp2 = StrStr(Temp2 + 1, L"%");
+        if (Temp2 == NULL) {
+          break;
+        }
+      }
+      if (Temp2 == NULL) {
+        break;
+      }
+      
+      Temp2++;
+      CopyMem(Temp, Temp2, StrSize(Temp2));
+    }
+
   }
 
+  //
+  // Now cleanup any straggler intentionally ignored "%" characters
+  //
+  ShellCopySearchAndReplace(NewCommandLine1, NewCommandLine2, NewSize, L"^%", L"%", TRUE, FALSE);
+  StrCpy(NewCommandLine1, NewCommandLine2);
+  
   FreePool(NewCommandLine2);
   FreePool(ItemTemp);
 
@@ -1322,7 +1377,7 @@ RunCommand(
   UINTN                     Argc;
   CHAR16                    **Argv;
   BOOLEAN                   LastError;
-  CHAR16                    LeString[11];
+  CHAR16                    LeString[19];
   CHAR16                    *PostAliasCmdLine;
   UINTN                     PostAliasSize;
   CHAR16                    *PostVariableCmdLine;
@@ -1358,11 +1413,30 @@ RunCommand(
   if (CleanOriginal == NULL) {
     return (EFI_OUT_OF_RESOURCES);
   }
-  while (CleanOriginal[StrLen(CleanOriginal)-1] == L' ') {
-    CleanOriginal[StrLen(CleanOriginal)-1] = CHAR_NULL;
-  }
+
+  //
+  // Remove any spaces at the beginning of the string.
+  //
   while (CleanOriginal[0] == L' ') {
     CopyMem(CleanOriginal, CleanOriginal+1, StrSize(CleanOriginal) - sizeof(CleanOriginal[0]));
+  }
+
+  //
+  // Handle case that passed in command line is just 1 or more " " characters.
+  //
+  if (StrLen (CleanOriginal) == 0) {
+    if (CleanOriginal != NULL) {
+      FreePool(CleanOriginal);
+      CleanOriginal = NULL;
+    }
+    return (EFI_SUCCESS);
+  }
+
+  //
+  // Remove any spaces at the end of the string.
+  //
+  while (CleanOriginal[StrLen(CleanOriginal)-1] == L' ') {
+    CleanOriginal[StrLen(CleanOriginal)-1] = CHAR_NULL;
   }
 
   CommandName = NULL;
@@ -1519,7 +1593,7 @@ RunCommand(
         if (!EFI_ERROR(Status))  {
           Status = ShellCommandRunCommandHandler(ShellInfoObject.NewShellParametersProtocol->Argv[0], &ShellStatus, &LastError);
           ASSERT_EFI_ERROR(Status);
-          UnicodeSPrint(LeString, sizeof(LeString)*sizeof(LeString[0]), L"0x%08x", ShellStatus);
+          UnicodeSPrint(LeString, sizeof(LeString), L"0x%08Lx", ShellStatus);
           DEBUG_CODE(InternalEfiShellSetEnv(L"DebugLasterror", LeString, TRUE););
           if (LastError) {
             InternalEfiShellSetEnv(L"Lasterror", LeString, TRUE);
@@ -1570,7 +1644,7 @@ RunCommand(
             //
             // Updatet last error status.
             //
-            UnicodeSPrint(LeString, sizeof(LeString)*sizeof(LeString[0]), L"0x%08x", StatusCode);
+            UnicodeSPrint(LeString, sizeof(LeString), L"0x%08Lx", StatusCode);
             DEBUG_CODE(InternalEfiShellSetEnv(L"DebugLasterror", LeString, TRUE););
             InternalEfiShellSetEnv(L"Lasterror", LeString, TRUE);
           }
@@ -1854,9 +1928,15 @@ RunScriptFileHandle (
             Status = RunCommand(CommandLine3+1);
 
             //
-            // Now restore the pre-'@' echo state.
+            // If command was "@echo -off" or "@echo -on" then don't restore echo state
             //
-            ShellCommandSetEchoState(PreCommandEchoState);
+            if (StrCmp (L"@echo -off", CommandLine3) != 0 &&
+                StrCmp (L"@echo -on", CommandLine3) != 0) {
+              //
+              // Now restore the pre-'@' echo state.
+              //
+              ShellCommandSetEchoState(PreCommandEchoState);
+            }
           } else {
             if (ShellCommandGetEchoState()) {
               CurDir = ShellInfoObject.NewEfiShellProtocol->GetEnv(L"cwd");
@@ -1872,7 +1952,7 @@ RunScriptFileHandle (
         }
 
         if (ShellCommandGetScriptExit()) {
-          UnicodeSPrint(LeString, sizeof(LeString)*sizeof(LeString[0]), L"0x%Lx", ShellCommandGetExitCode());
+          UnicodeSPrint(LeString, sizeof(LeString), L"0x%Lx", ShellCommandGetExitCode());
           DEBUG_CODE(InternalEfiShellSetEnv(L"DebugLasterror", LeString, TRUE););
           InternalEfiShellSetEnv(L"Lasterror", LeString, TRUE);
 

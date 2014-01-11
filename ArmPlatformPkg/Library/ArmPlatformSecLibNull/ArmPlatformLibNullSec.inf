@@ -33,8 +33,12 @@
   ArmPlatformLibNullSec.c
 
 [Sources.ARM]
-  ArmPlatformLibNullBoot.asm     | RVCT
-  ArmPlatformLibNullBoot.S       | GCC
+  Arm/ArmPlatformLibNullBoot.asm     | RVCT
+  Arm/ArmPlatformLibNullBoot.S       | GCC
+
+[Sources.AARCH64]
+  AArch64/ArmPlatformLibNullBoot.S   | GCC
+
 
 [FixedPcd]
   gArmTokenSpaceGuid.PcdFvBaseAddress

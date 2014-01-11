@@ -35,20 +35,20 @@ CEntryPoint (
   UINTN           JumpAddress;
 
   // Invalidate the data cache. Doesn't have to do the Data cache clean.
-  ArmInvalidateDataCache();
+  ArmInvalidateDataCache ();
 
   // Invalidate Instruction Cache
-  ArmInvalidateInstructionCache();
+  ArmInvalidateInstructionCache ();
 
   // Invalidate I & D TLBs
-  ArmInvalidateInstructionAndDataTlb();
+  ArmInvalidateInstructionAndDataTlb ();
 
   // CPU specific settings
   ArmCpuSetup (MpId);
 
   // Enable Floating Point Coprocessor if supported by the platform
   if (FixedPcdGet32 (PcdVFPEnabled)) {
-    ArmEnableVFP();
+    ArmEnableVFP ();
   }
 
   // Initialize peripherals that must be done at the early stage
@@ -56,7 +56,7 @@ CEntryPoint (
   ArmPlatformSecInitialize (MpId);
 
   // Primary CPU clears out the SCU tag RAMs, secondaries wait
-  if (IS_PRIMARY_CORE(MpId) && (SecBootMode == ARM_SEC_COLD_BOOT)) {
+  if (ArmPlatformIsPrimaryCore (MpId) && (SecBootMode == ARM_SEC_COLD_BOOT)) {
     if (ArmIsMpCore()) {
       // Signal for the initial memory is configured (event: BOOT_MEM_INIT)
       ArmCallSEV ();
@@ -95,7 +95,7 @@ CEntryPoint (
 
   // Test if Trustzone is supported on this platform
   if (FixedPcdGetBool (PcdTrustzoneSupport)) {
-    if (ArmIsMpCore()) {
+    if (ArmIsMpCore ()) {
       // Setup SMP in Non Secure world
       ArmCpuSetupSmpNonSecure (GET_CORE_ID(MpId));
     }
@@ -108,7 +108,7 @@ CEntryPoint (
     // Enter Monitor Mode
     enter_monitor_mode ((UINTN)TrustedWorldInitialization, MpId, SecBootMode, (VOID*)(PcdGet32(PcdCPUCoresSecMonStackBase) + (PcdGet32(PcdCPUCoreSecMonStackSize) * (GET_CORE_POS(MpId) + 1))));
   } else {
-    if (IS_PRIMARY_CORE(MpId)) {
+    if (ArmPlatformIsPrimaryCore (MpId)) {
       SerialPrint ("Trust Zone Configuration is disabled\n\r");
     }
 
@@ -147,7 +147,7 @@ TrustedWorldInitialization (
 
   // Setup the Trustzone Chipsets
   if (SecBootMode == ARM_SEC_COLD_BOOT) {
-    if (IS_PRIMARY_CORE(MpId)) {
+    if (ArmPlatformIsPrimaryCore (MpId)) {
       if (ArmIsMpCore()) {
         // Signal the secondary core the Security settings is done (event: EVENT_SECURE_INIT)
         ArmCallSEV ();
@@ -165,8 +165,8 @@ TrustedWorldInitialization (
   JumpAddress = PcdGet32 (PcdFvBaseAddress);
   ArmPlatformSecExtraAction (MpId, &JumpAddress);
 
-  // Write to CP15 Non-secure Access Control Register
-  ArmWriteNsacr (PcdGet32 (PcdArmNsacr));
+  // Initialize architecture specific security policy
+  ArmSecArchTrustzoneInit ();
 
   // CP15 Secure Configuration Register
   ArmWriteScr (PcdGet32 (PcdArmScr));

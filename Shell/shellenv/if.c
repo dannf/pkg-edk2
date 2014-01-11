@@ -59,7 +59,6 @@ Returns:
   BOOLEAN     ExistNot;
   UINTN       NotPos;
   BOOLEAN     ExistI;
-  UINTN       IPos;
   EFI_STATUS  Status;
   CHAR16      *FileName;
   BOOLEAN     FileExists;
@@ -122,10 +121,8 @@ Returns:
     //
     if ((StriCmp (SI->Argv[1], L"/i") == 0)) {
       ExistI  = TRUE;
-      IPos    = 1;
     } else {
       ExistI  = FALSE;
-      IPos    = 0;
     }
 
     NotPos = ExistI ? 2 : 1;

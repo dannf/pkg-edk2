@@ -49,18 +49,18 @@ DumpIoModify (
 
 VOID
 ReadMem (
-  IN  EFI_IO_WIDTH  Width,
-  IN  UINT64        Address,
-  IN  UINTN         Size,
-  IN  VOID          *Buffer
+  IN  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH  Width,
+  IN  UINT64                                 Address,
+  IN  UINTN                                  Size,
+  IN  VOID                                   *Buffer
   );
 
 VOID
 WriteMem (
-  IN  EFI_IO_WIDTH  Width,
-  IN  UINT64        Address,
-  IN  UINTN         Size,
-  IN  VOID          *Buffer
+  IN  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH  Width,
+  IN  UINT64                                 Address,
+  IN  UINTN                                  Size,
+  IN  VOID                                   *Buffer
   );
 
 STATIC
@@ -134,7 +134,7 @@ SHELL_VAR_CHECK_ITEM    IomodCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -146,13 +146,13 @@ EFI_BOOTSHELL_CODE(
 
 EFI_STATUS
 OldShellParserMM (
-  OUT EFI_IO_WIDTH       *Width,
-  OUT EFI_ACCESS_TYPE    *AccessType,
-  OUT UINT64             *Address,
-  OUT UINT64             *Value,
-  OUT UINTN              *Size,
-  OUT BOOLEAN            *Interactive,
-  OUT CHAR16             **ValueStr
+  OUT EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH *Width,
+  OUT EFI_ACCESS_TYPE                       *AccessType,
+  OUT UINT64                                *Address,
+  OUT UINT64                                *Value,
+  OUT UINTN                                 *Size,
+  OUT BOOLEAN                               *Interactive,
+  OUT CHAR16                               **ValueStr
   );
 
 EFI_STATUS
@@ -207,12 +207,11 @@ Notes:
   UINT64                          PciEAddress;
   UINT64                          Value;
   UINT32                          SegmentNumber;
-  EFI_IO_WIDTH                    Width;
+  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH Width;
   EFI_ACCESS_TYPE                 AccessType;
   UINT64                          Buffer;
   UINTN                           Index;
   UINTN                           Size;
-  CHAR16                          *AddressStr;
   CHAR16                          *ValueStr;
   BOOLEAN                         Complete;
   CHAR16                          InputStr[80];
@@ -261,7 +260,7 @@ Notes:
   if (IS_OLD_SHELL) {
     Status = OldShellParserMM (&Width, &AccessType, &Address, &Value, &Size, &Interactive, &ValueStr);
     if (EFI_ERROR (Status)) {
-      if (-1 == Status) {
+      if ((EFI_STATUS)-1 == Status) {
         PrintToken (STRING_TOKEN (STR_HELPINFO_MM_VERBOSEHELP), HiiHandle);
         Status = EFI_SUCCESS;
       }
@@ -274,7 +273,6 @@ Notes:
     Width       = EfiPciWidthUint8;
     Size        = 1;
     AccessType  = EfiMemory;
-    AddressStr  = NULL;
     ValueStr    = NULL;
     Interactive = TRUE;
 
@@ -662,10 +660,10 @@ Done:
 
 VOID
 ReadMem (
-  IN  EFI_IO_WIDTH  Width,
-  IN  UINT64        Address,
-  IN  UINTN         Size,
-  IN  VOID          *Buffer
+  IN  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH  Width,
+  IN  UINT64                                 Address,
+  IN  UINTN                                  Size,
+  IN  VOID                                   *Buffer
   )
 {
   do {
@@ -694,10 +692,10 @@ ReadMem (
 
 VOID
 WriteMem (
-  IN  EFI_IO_WIDTH  Width,
-  IN  UINT64        Address,
-  IN  UINTN         Size,
-  IN  VOID          *Buffer
+  IN  EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH  Width,
+  IN  UINT64                                 Address,
+  IN  UINTN                                  Size,
+  IN  VOID                                   *Buffer
   )
 {
   do {
@@ -766,13 +764,13 @@ GetHex (
 
 EFI_STATUS
 OldShellParserMM (
-  OUT EFI_IO_WIDTH       *Width,
-  OUT EFI_ACCESS_TYPE    *AccessType,
-  OUT UINT64             *Address,
-  OUT UINT64             *Value,
-  OUT UINTN              *Size,
-  OUT BOOLEAN            *Interactive,
-  OUT CHAR16             **ValueStr
+  OUT EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL_WIDTH *Width,
+  OUT EFI_ACCESS_TYPE                       *AccessType,
+  OUT UINT64                                *Address,
+  OUT UINT64                                *Value,
+  OUT UINTN                                 *Size,
+  OUT BOOLEAN                               *Interactive,
+  OUT CHAR16                               **ValueStr
   )
 /*++
 

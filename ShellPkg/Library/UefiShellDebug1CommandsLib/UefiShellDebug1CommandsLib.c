@@ -180,7 +180,7 @@ DumpHex (
 
     Val[Index * 3]  = 0;
     Str[Index]      = 0;
-    ShellPrintEx(-1, -1, L"%*a%02X: %-.48a *%a*\r\n", Indent, "", Offset, Val, Str);
+    ShellPrintEx(-1, -1, L"%*a%08X: %-48a *%a*\r\n", Indent, "", Offset, Val, Str);
 
     Data += Size;
     Offset += Size;
@@ -490,11 +490,9 @@ EditGetDefaultFileName (
 {
   EFI_STATUS         Status;
   UINTN              Suffix;
-  BOOLEAN            FoundNewFile;
   CHAR16             *FileNameTmp;
 
   Suffix       = 0;
-  FoundNewFile = FALSE;
 
   do {
     FileNameTmp = CatSPrint (NULL, L"NewFile%d.%s", Suffix, Extension);

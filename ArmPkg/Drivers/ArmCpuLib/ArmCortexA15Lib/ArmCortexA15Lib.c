@@ -15,7 +15,7 @@
 #include <Base.h>
 #include <Library/ArmLib.h>
 #include <Library/ArmCpuLib.h>
-#include <Library/ArmV7ArchTimerLib.h>
+#include <Library/ArmArchTimerLib.h>
 #include <Library/DebugLib.h>
 #include <Library/IoLib.h>
 #include <Library/PcdLib.h>
@@ -55,7 +55,7 @@ ArmCpuSetupSmpNonSecure (
   )
 {
   /*// Make the SCU accessible in Non Secure world
-  if (IS_PRIMARY_CORE(MpId)) {
+  if (ArmPlatformIsPrimaryCore (MpId)) {
     ScuBase = ArmGetScuBaseAddress();
 
     // Allow NS access to SCU register

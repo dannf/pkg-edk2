@@ -59,20 +59,6 @@ ArmPlatformGetVirtualMemoryMap (
     CacheAttributes = DDR_ATTRIBUTES_UNCACHED;
   }
 
-  // Detect if it is a 1GB or 2GB Test Chip
-  //   [16:19]: 0=1GB TC2, 1=2GB TC2
-  if (MmioRead32(ARM_VE_SYS_PROCID0_REG) & (0xF << 16)) {
-    DEBUG((EFI_D_ERROR,"Info: 2GB Test Chip 2 detected.\n"));
-    BuildResourceDescriptorHob (
-        EFI_RESOURCE_SYSTEM_MEMORY,
-        EFI_RESOURCE_ATTRIBUTE_PRESENT | EFI_RESOURCE_ATTRIBUTE_INITIALIZED | EFI_RESOURCE_ATTRIBUTE_UNCACHEABLE |
-          EFI_RESOURCE_ATTRIBUTE_WRITE_COMBINEABLE | EFI_RESOURCE_ATTRIBUTE_WRITE_THROUGH_CACHEABLE | EFI_RESOURCE_ATTRIBUTE_WRITE_BACK_CACHEABLE |
-          EFI_RESOURCE_ATTRIBUTE_TESTED,
-        PcdGet32 (PcdSystemMemoryBase) + PcdGet32 (PcdSystemMemorySize),
-        0x40000000
-    );
-  }
-
 #ifdef ARM_BIGLITTLE_TC2
   // Secure NOR0 Flash
   VirtualMemoryTable[Index].PhysicalBase    = ARM_VE_SEC_NOR0_BASE;
@@ -164,6 +150,26 @@ ArmPlatformGetVirtualMemoryMap (
   VirtualMemoryTable[Index].Length          = PcdGet32 (PcdSystemMemorySize);
   VirtualMemoryTable[Index].Attributes      = CacheAttributes;
 
+  // Detect if it is a 1GB or 2GB Test Chip
+  //   [16:19]: 0=1GB TC2, 1=2GB TC2
+  if (MmioRead32(ARM_VE_SYS_PROCID0_REG) & (0xF << 16)) {
+    DEBUG((EFI_D_ERROR,"Info: 2GB Test Chip 2 detected.\n"));
+    BuildResourceDescriptorHob (
+        EFI_RESOURCE_SYSTEM_MEMORY,
+        EFI_RESOURCE_ATTRIBUTE_PRESENT | EFI_RESOURCE_ATTRIBUTE_INITIALIZED | EFI_RESOURCE_ATTRIBUTE_UNCACHEABLE |
+          EFI_RESOURCE_ATTRIBUTE_WRITE_COMBINEABLE | EFI_RESOURCE_ATTRIBUTE_WRITE_THROUGH_CACHEABLE | EFI_RESOURCE_ATTRIBUTE_WRITE_BACK_CACHEABLE |
+          EFI_RESOURCE_ATTRIBUTE_TESTED,
+        PcdGet32 (PcdSystemMemoryBase) + PcdGet32 (PcdSystemMemorySize),
+        SIZE_1GB
+    );
+
+    // Map the additional 1GB into the MMU
+    VirtualMemoryTable[++Index].PhysicalBase  = PcdGet32 (PcdSystemMemoryBase) + PcdGet32 (PcdSystemMemorySize);
+    VirtualMemoryTable[Index].VirtualBase     = PcdGet32 (PcdSystemMemoryBase) + PcdGet32 (PcdSystemMemorySize);
+    VirtualMemoryTable[Index].Length          = SIZE_1GB;
+    VirtualMemoryTable[Index].Attributes      = CacheAttributes;
+  }
+
   // End of Table
   VirtualMemoryTable[++Index].PhysicalBase  = 0;
   VirtualMemoryTable[Index].VirtualBase     = 0;
@@ -173,22 +179,4 @@ ArmPlatformGetVirtualMemoryMap (
   ASSERT((Index + 1) <= MAX_VIRTUAL_MEMORY_MAP_DESCRIPTORS);
 
   *VirtualMemoryMap = VirtualMemoryTable;
-}
-
-/**
-  Return the EFI Memory Map provided by extension memory on your platform
-
-  This EFI Memory Map of the System Memory is used by MemoryInitPei module to create the Resource
-  Descriptor HOBs used by DXE core.
-
-  @param[out]   EfiMemoryMap        Array of ARM_SYSTEM_MEMORY_REGION_DESCRIPTOR describing an
-                                    EFI Memory region. This array must be ended by a zero-filled entry
-
-**/
-EFI_STATUS
-ArmPlatformGetAdditionalSystemMemory (
-  OUT ARM_SYSTEM_MEMORY_REGION_DESCRIPTOR** EfiMemoryMap
-  )
-{
-  return EFI_UNSUPPORTED;
 }

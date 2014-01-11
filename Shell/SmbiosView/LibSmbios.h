@@ -642,3 +642,4 @@ LibGetSmbiosSystemGuidAndSerialNumber (
 
 
 #endif
+

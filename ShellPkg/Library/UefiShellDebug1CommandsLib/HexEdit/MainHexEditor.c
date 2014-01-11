@@ -290,7 +290,6 @@ HMainCommandSaveBuffer (
         // the file won't be saved
         //
         return EFI_SUCCESS;
-        break;
 
       case L'c':
       case L'C':
@@ -598,7 +597,6 @@ HMainCommandCut (
   )
 {
   UINTN             Index;
-  HEFI_EDITOR_LINE  *Line;
   LIST_ENTRY    *Link;
   UINT8             *Buffer;
   UINTN             Count;
@@ -622,8 +620,6 @@ HMainCommandCut (
   for (Index = 0; Index < (HMainEditor.SelectEnd - 1) / 0x10; Index++) {
     Link = Link->ForwardLink;
   }
-
-  Line    = CR (Link, HEFI_EDITOR_LINE, Link, EFI_EDITOR_LINE_LIST);
 
   Count   = HMainEditor.SelectEnd - HMainEditor.SelectStart + 1;
   Buffer  = AllocateZeroPool (Count);
@@ -1687,7 +1683,7 @@ HMainEditorInit (
   //
   // below will call the five components' init function
   //
-  Status = MainTitleBarInit (NULL);
+  Status = MainTitleBarInit (L"UEFI HEXEDIT");
   if (EFI_ERROR (Status)) {
     ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_HEXEDIT_LIBEDITOR_MAINEDITOR_TITLE), gShellDebug1HiiHandle);
     return EFI_LOAD_ERROR;

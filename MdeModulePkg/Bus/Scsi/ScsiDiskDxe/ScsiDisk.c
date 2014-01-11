@@ -1,7 +1,7 @@
 /** @file
   SCSI disk driver that layers on every SCSI IO protocol in the system.
 
-Copyright (c) 2006 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -957,7 +957,7 @@ ScsiDiskInquiryDevice (
 
   Status = ScsiInquiryCommand (
             ScsiDiskDevice->ScsiIo,
-            EFI_TIMER_PERIOD_SECONDS (1),
+            SCSI_DISK_TIMEOUT,
             NULL,
             &SenseDataLength,
             &HostAdapterStatus,
@@ -986,7 +986,7 @@ ScsiDiskInquiryDevice (
       SenseDataLength   = 0;
       Status = ScsiInquiryCommandEx (
                  ScsiDiskDevice->ScsiIo,
-                 EFI_TIMER_PERIOD_SECONDS (1),
+                 SCSI_DISK_TIMEOUT,
                  NULL,
                  &SenseDataLength,
                  &HostAdapterStatus,
@@ -1020,7 +1020,7 @@ ScsiDiskInquiryDevice (
           SenseDataLength   = 0;
           Status = ScsiInquiryCommandEx (
                      ScsiDiskDevice->ScsiIo,
-                     EFI_TIMER_PERIOD_SECONDS (1),
+                     SCSI_DISK_TIMEOUT,
                      NULL,
                      &SenseDataLength,
                      &HostAdapterStatus,
@@ -1157,7 +1157,7 @@ ScsiDiskTestUnitReady (
   //
   Status = ScsiTestUnitReadyCommand (
             ScsiDiskDevice->ScsiIo,
-            EFI_TIMER_PERIOD_SECONDS (1),
+            SCSI_DISK_TIMEOUT,
             NULL,
             &SenseDataLength,
             &HostAdapterStatus,
@@ -1376,7 +1376,7 @@ ScsiDiskReadCapacity (
   //
   CommandStatus = ScsiReadCapacityCommand (
                     ScsiDiskDevice->ScsiIo,
-                    EFI_TIMER_PERIOD_SECONDS(1),
+                    SCSI_DISK_TIMEOUT,
                     NULL,
                     &SenseDataLength,
                     &HostAdapterStatus,
@@ -1399,7 +1399,7 @@ ScsiDiskReadCapacity (
     //
     CommandStatus = ScsiReadCapacity16Command (
                       ScsiDiskDevice->ScsiIo,
-                      EFI_TIMER_PERIOD_SECONDS (1),
+                      SCSI_DISK_TIMEOUT,
                       NULL,
                       &SenseDataLength,
                       &HostAdapterStatus,
@@ -1623,7 +1623,7 @@ ScsiDiskRequestSenseKeys (
   for (SenseReq = TRUE; SenseReq;) {
     Status = ScsiRequestSenseCommand (
               ScsiDiskDevice->ScsiIo,
-              EFI_TIMER_PERIOD_SECONDS (2),
+              SCSI_DISK_TIMEOUT,
               PtrSenseData,
               &SenseDataLength,
               &HostAdapterStatus,
@@ -1815,7 +1815,39 @@ ScsiDiskReadSectors (
     }
 
     ByteCount = SectorCount * BlockSize;
-    Timeout   = EFI_TIMER_PERIOD_SECONDS (2);
+    //
+    // |------------------------|-----------------|------------------|-----------------|
+    // |   ATA Transfer Mode    |  Transfer Rate  |  SCSI Interface  |  Transfer Rate  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 0       |  3.3Mbytes/sec  |     SCSI-1       |    5Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 1       |  5.2Mbytes/sec  |    Fast SCSI     |   10Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 2       |  8.3Mbytes/sec  |  Fast-Wide SCSI  |   20Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 3       | 11.1Mbytes/sec  |    Ultra SCSI    |   20Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 4       | 16.6Mbytes/sec  |  Ultra Wide SCSI |   40Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 0 |  2.1Mbytes/sec  |    Ultra2 SCSI   |   40Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 1 |  4.2Mbytes/sec  | Ultra2 Wide SCSI |   80Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 2 |  8.4Mbytes/sec  |    Ultra3 SCSI   |  160Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Multi-word DMA Mode 0  |  4.2Mbytes/sec  |  Ultra-320 SCSI  |  320Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Multi-word DMA Mode 1  | 13.3Mbytes/sec  |  Ultra-640 SCSI  |  640Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    //
+    // As ScsiDisk and ScsiBus driver are used to manage SCSI or ATAPI devices, we have to use
+    // the lowest transfer rate to calculate the possible maximum timeout value for each operation.
+    // From the above table, we could know 2.1Mbytes per second is lowest one.
+    // The timout value is rounded up to nearest integar and here an additional 30s is added
+    // to follow ATA spec in which it mentioned that the device may take up to 30s to respond
+    // commands in the Standby/Idle mode.
+    //
+    Timeout   = EFI_TIMER_PERIOD_SECONDS (ByteCount / 2100000 + 31);
 
     MaxRetry  = 2;
     for (Index = 0; Index < MaxRetry; Index++) {
@@ -1937,7 +1969,39 @@ ScsiDiskWriteSectors (
     }
 
     ByteCount = SectorCount * BlockSize;
-    Timeout   = EFI_TIMER_PERIOD_SECONDS (2);
+    //
+    // |------------------------|-----------------|------------------|-----------------|
+    // |   ATA Transfer Mode    |  Transfer Rate  |  SCSI Interface  |  Transfer Rate  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 0       |  3.3Mbytes/sec  |     SCSI-1       |    5Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 1       |  5.2Mbytes/sec  |    Fast SCSI     |   10Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 2       |  8.3Mbytes/sec  |  Fast-Wide SCSI  |   20Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 3       | 11.1Mbytes/sec  |    Ultra SCSI    |   20Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // |       PIO Mode 4       | 16.6Mbytes/sec  |  Ultra Wide SCSI |   40Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 0 |  2.1Mbytes/sec  |    Ultra2 SCSI   |   40Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 1 |  4.2Mbytes/sec  | Ultra2 Wide SCSI |   80Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Single-word DMA Mode 2 |  8.4Mbytes/sec  |    Ultra3 SCSI   |  160Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Multi-word DMA Mode 0  |  4.2Mbytes/sec  |  Ultra-320 SCSI  |  320Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    // | Multi-word DMA Mode 1  | 13.3Mbytes/sec  |  Ultra-640 SCSI  |  640Mbytes/sec  |
+    // |------------------------|-----------------|------------------|-----------------|
+    //
+    // As ScsiDisk and ScsiBus driver are used to manage SCSI or ATAPI devices, we have to use
+    // the lowest transfer rate to calculate the possible maximum timeout value for each operation.
+    // From the above table, we could know 2.1Mbytes per second is lowest one.
+    // The timout value is rounded up to nearest integar and here an additional 30s is added
+    // to follow ATA spec in which it mentioned that the device may take up to 30s to respond
+    // commands in the Standby/Idle mode.
+    //
+    Timeout   = EFI_TIMER_PERIOD_SECONDS (ByteCount / 2100000 + 31);
     MaxRetry  = 2;
     for (Index = 0; Index < MaxRetry; Index++) {
       if (!ScsiDiskDevice->Cdb16Byte) {
@@ -2867,7 +2931,7 @@ AtapiIdentifyDevice (
   ZeroMem (Cdb, sizeof (Cdb));
 
   Cdb[0] = ATA_CMD_IDENTIFY_DEVICE;
-  CommandPacket.Timeout = EFI_TIMER_PERIOD_SECONDS (1);
+  CommandPacket.Timeout = SCSI_DISK_TIMEOUT;
   CommandPacket.Cdb = Cdb;
   CommandPacket.CdbLength = (UINT8) sizeof (Cdb);
   CommandPacket.InDataBuffer = &ScsiDiskDevice->IdentifyData;

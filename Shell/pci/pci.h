@@ -477,3 +477,4 @@ typedef struct {
 #pragma pack()
 
 #endif // _PCI_H_
+

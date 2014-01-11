@@ -60,7 +60,7 @@ SHELL_VAR_CHECK_ITEM    ErrCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -170,13 +170,11 @@ _DumpDriverMask (
   UINTN       HandleNum;
   UINTN       Index;
   UINTN       DrvHandle;
-  BOOLEAN     Found;
 
   HandleBuf = NULL;
   HandleNum = 0;
   DrvHandle = 0;
   Status    = EFI_SUCCESS;
-  Found     = FALSE;
 
   if (NULL != Handle) {
     DrvHandle = (UINTN) StrToUIntegerBase (Handle, 16, &Status) - 1;

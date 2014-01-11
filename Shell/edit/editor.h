@@ -49,3 +49,4 @@ extern EFI_HII_PROTOCOL         *Hii;
 #endif
 
 #endif // _EFI_EDITOR_H_
+

@@ -15,7 +15,7 @@
   TcgMeasureGptTable() function will receive untrusted GPT partition table, and parse
   partition data carefully.
 
-Copyright (c) 2009 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2009 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials 
 are licensed and made available under the terms and conditions of the BSD License 
 which accompanies this distribution.  The full text of the license may be found at 
@@ -31,7 +31,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/TcgService.h>
 #include <Protocol/BlockIo.h>
 #include <Protocol/DiskIo.h>
-#include <Protocol/DevicePathToText.h>
 #include <Protocol/FirmwareVolumeBlock.h>
 
 #include <Guid/MeasuredFvHob.h>
@@ -664,6 +663,14 @@ TcgMeasurePeImage (
              &EventNumber,
              &EventLogLastEntry
              );
+  if (Status == EFI_OUT_OF_RESOURCES) {
+    //
+    // Out of resource here means the image is hashed and its result is extended to PCR.
+    // But the event log cann't be saved since log area is full.
+    // Just return EFI_SUCCESS in order not to block the image load.
+    //
+    Status = EFI_SUCCESS;
+  }
 
 Finish:
   FreePool (TcgEvent);
@@ -932,21 +939,14 @@ DxeTpmMeasureBootHandler (
     //    
     DEBUG_CODE_BEGIN ();
       CHAR16                            *ToText;
-      EFI_DEVICE_PATH_TO_TEXT_PROTOCOL  *DevPathToText;
-      Status = gBS->LocateProtocol (
-                      &gEfiDevicePathToTextProtocolGuid,
-                      NULL,
-                      (VOID **) &DevPathToText
-                      );
-      if (!EFI_ERROR (Status)) {
-        ToText = DevPathToText->ConvertDevicePathToText (
-                                  DevicePathNode,
-                                  FALSE,
-                                  TRUE
-                                  );
-        if (ToText != NULL) {
-          DEBUG ((DEBUG_INFO, "The measured image path is %s.\n", ToText));
-        }
+      ToText = ConvertDevicePathToText (
+                 DevicePathNode,
+                 FALSE,
+                 TRUE
+                 );
+      if (ToText != NULL) {
+        DEBUG ((DEBUG_INFO, "The measured image path is %s.\n", ToText));
+        FreePool (ToText);
       }
     DEBUG_CODE_END ();
 

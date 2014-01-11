@@ -67,3 +67,4 @@ typedef struct _EFI_DEBUG_MASK_PROTOCOL {
 extern EFI_GUID gEfiDebugMaskProtocolGuid;
 
 #endif
+

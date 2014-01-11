@@ -1,6 +1,6 @@
 /*++
 
-Copyright (c) 2005 - 2008, Intel Corporation                                                         
+Copyright (c) 2005 - 2013, Intel Corporation                                                         
 All rights reserved. This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution. The full text of the license may be found at         
@@ -926,6 +926,10 @@ LibScanHandleDatabase (
                 ) == EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
                   ) {
                 //
+                // Mark the device handle as being managed by the driver specified by DriverBindingHandle
+                //
+                (*HandleType)[HandleIndex] |= (EFI_HANDLE_TYPE_DEVICE_HANDLE | EFI_HANDLE_TYPE_CONTROLLER_HANDLE);
+                //
                 // Mark the DriverBindingHandle as being a driver that is managing at least one child controller
                 //
                 if (DriverBindingHandleIndexValid) {
@@ -947,7 +951,7 @@ LibScanHandleDatabase (
               }
             }
 
-            if (DriverBindingHandle == NULL && OpenInfo[OpenInfoIndex].ControllerHandle == ControllerHandle) {
+            if (DriverBindingHandle == NULL && (*HandleBuffer)[HandleIndex] == ControllerHandle) {
               if ((OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_DRIVER) == EFI_OPEN_PROTOCOL_BY_DRIVER) {
                 for (ChildIndex = 0; ChildIndex < *HandleCount; ChildIndex++) {
                   if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].AgentHandle) {
@@ -955,7 +959,22 @@ LibScanHandleDatabase (
                   }
                 }
               }
+              if ((
+                    OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
+                ) == EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
+                  ) {
+                for (ChildIndex = 0; ChildIndex < *HandleCount; ChildIndex++) {
+                  if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].AgentHandle) {
+                    (*HandleType)[ChildIndex] |= (EFI_HANDLE_TYPE_BUS_DRIVER | EFI_HANDLE_TYPE_DEVICE_DRIVER);
+                  }
+                  if ((*HandleBuffer)[ChildIndex] == OpenInfo[OpenInfoIndex].ControllerHandle) {
+                    (*HandleType)[ChildIndex] |= (EFI_HANDLE_TYPE_DEVICE_HANDLE | EFI_HANDLE_TYPE_CHILD_HANDLE);
+                  }
+                }
+              }
+            }
 
+            if (DriverBindingHandle == NULL && OpenInfo[OpenInfoIndex].ControllerHandle == ControllerHandle) {
               if ((
                     OpenInfo[OpenInfoIndex].Attributes & EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
                 ) == EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER

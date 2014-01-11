@@ -58,3 +58,4 @@
 #define PAL_MC_REGISTER_MEM   0x001b
 
 #endif // _PALPROC_H
+

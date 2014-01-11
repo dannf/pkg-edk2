@@ -1,7 +1,7 @@
 /** @file
   The XHCI controller driver.
 
-Copyright (c) 2011 - 2012, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2011 - 2013, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -164,6 +164,11 @@ XhcReset (
   // Flow through, same behavior as Host Controller Reset
   //
   case EFI_USB_HC_RESET_HOST_CONTROLLER:
+    if ((Xhc->DebugCapSupOffset != 0xFFFFFFFF) && ((XhcReadExtCapReg (Xhc, Xhc->DebugCapSupOffset) & 0xFF) == XHC_CAP_USB_DEBUG) &&
+        ((XhcReadExtCapReg (Xhc, Xhc->DebugCapSupOffset + XHC_DC_DCCTRL) & BIT0) != 0)) {
+      Status = EFI_SUCCESS;
+      goto ON_EXIT;
+    }
     //
     // Host Controller must be Halt when Reset it
     //
@@ -900,11 +905,24 @@ XhcControlTransfer (
     Status = EFI_SUCCESS;
   } else if (*TransferResult == EFI_USB_ERR_STALL) {
     RecoveryStatus = XhcRecoverHaltedEndpoint(Xhc, Urb);
-    ASSERT_EFI_ERROR (RecoveryStatus);
+    if (EFI_ERROR (RecoveryStatus)) {
+      DEBUG ((EFI_D_ERROR, "XhcControlTransfer: XhcRecoverHaltedEndpoint failed\n"));
+    }
     Status = EFI_DEVICE_ERROR;
     goto FREE_URB;
   } else {
     goto FREE_URB;
+  }
+
+  Xhc->PciIo->Flush (Xhc->PciIo);
+  
+  if (Urb->DataMap != NULL) {
+    Status = Xhc->PciIo->Unmap (Xhc->PciIo, Urb->DataMap);
+    ASSERT_EFI_ERROR (Status);
+    if (EFI_ERROR (Status)) {
+      Status = EFI_DEVICE_ERROR;
+      goto FREE_URB;
+    }  
   }
 
   //
@@ -916,7 +934,7 @@ XhcControlTransfer (
       ((Request->RequestType == USB_REQUEST_TYPE (EfiUsbDataIn, USB_REQ_TYPE_STANDARD, USB_TARGET_DEVICE)) || 
       ((Request->RequestType == USB_REQUEST_TYPE (EfiUsbDataIn, USB_REQ_TYPE_CLASS, USB_TARGET_DEVICE))))) {
     DescriptorType = (UINT8)(Request->Value >> 8);
-    if ((DescriptorType == USB_DESC_TYPE_DEVICE) && (*DataLength == sizeof (EFI_USB_DEVICE_DESCRIPTOR))) {
+    if ((DescriptorType == USB_DESC_TYPE_DEVICE) && ((*DataLength == sizeof (EFI_USB_DEVICE_DESCRIPTOR)) || ((DeviceSpeed == EFI_USB_SPEED_FULL) && (*DataLength == 8)))) {
         ASSERT (Data != NULL);
         //
         // Store a copy of device scriptor as hub device need this info to configure endpoint.
@@ -936,7 +954,6 @@ XhcControlTransfer (
         } else {
           Status = XhcEvaluateContext64 (Xhc, SlotId, MaxPacket0);
         }
-        ASSERT_EFI_ERROR (Status);
     } else if (DescriptorType == USB_DESC_TYPE_CONFIG) {
       ASSERT (Data != NULL);
       if (*DataLength == ((UINT16 *)Data)[1]) {
@@ -972,7 +989,6 @@ XhcControlTransfer (
       } else {
         Status = XhcConfigHubContext64 (Xhc, SlotId, HubDesc->NumPorts, TTT, MTT);
       }
-      ASSERT_EFI_ERROR (Status);
     }
   } else if ((Request->Request     == USB_REQ_SET_CONFIG) &&
              (Request->RequestType == USB_REQUEST_TYPE (EfiUsbNoData, USB_REQ_TYPE_STANDARD, USB_TARGET_DEVICE))) {
@@ -986,7 +1002,6 @@ XhcControlTransfer (
         } else {
           Status = XhcSetConfigCmd64 (Xhc, SlotId, DeviceSpeed, Xhc->UsbDevContext[SlotId].ConfDesc[Index]);
         }
-        ASSERT_EFI_ERROR (Status);
         break;
       }
     }
@@ -1007,17 +1022,15 @@ XhcControlTransfer (
       if ((State & XHC_PORTSC_PS) >> 10 == 0) {
         PortStatus.PortStatus |= USB_PORT_STAT_SUPER_SPEED;
       }
-    } else if (DeviceSpeed == EFI_USB_SPEED_HIGH) {
+    } else {
       //
-      // For high speed hub, its bit9~10 presents the attached device speed.
+      // For high or full/low speed hub, its bit9~10 presents the attached device speed.
       //
       if (XHC_BIT_IS_SET (State, BIT9)) {
         PortStatus.PortStatus |= USB_PORT_STAT_LOW_SPEED;
       } else if (XHC_BIT_IS_SET (State, BIT10)) {
         PortStatus.PortStatus |= USB_PORT_STAT_HIGH_SPEED;
       }
-    } else {
-      ASSERT (0);
     }
 
     //
@@ -1183,11 +1196,14 @@ XhcBulkTransfer (
     Status = EFI_SUCCESS;
   } else if (*TransferResult == EFI_USB_ERR_STALL) {
     RecoveryStatus = XhcRecoverHaltedEndpoint(Xhc, Urb);
-    ASSERT_EFI_ERROR (RecoveryStatus);
+    if (EFI_ERROR (RecoveryStatus)) {
+      DEBUG ((EFI_D_ERROR, "XhcBulkTransfer: XhcRecoverHaltedEndpoint failed\n"));
+    }
     Status = EFI_DEVICE_ERROR;
   }
 
-  FreePool (Urb);
+  Xhc->PciIo->Flush (Xhc->PciIo);
+  XhcFreeUrb (Xhc, Urb);
 
 ON_EXIT:
 
@@ -1353,6 +1369,7 @@ XhcAsyncInterruptTransfer (
   Status = RingIntTransferDoorBell (Xhc, Urb);
 
 ON_EXIT:
+  Xhc->PciIo->Flush (Xhc->PciIo);
   gBS->RestoreTPL (OldTpl);
 
   return Status;
@@ -1480,11 +1497,14 @@ XhcSyncInterruptTransfer (
     Status = EFI_SUCCESS;
   } else if (*TransferResult == EFI_USB_ERR_STALL) {
     RecoveryStatus = XhcRecoverHaltedEndpoint(Xhc, Urb);
-    ASSERT_EFI_ERROR (RecoveryStatus);
+    if (EFI_ERROR (RecoveryStatus)) {
+      DEBUG ((EFI_D_ERROR, "XhcSyncInterruptTransfer: XhcRecoverHaltedEndpoint failed\n"));
+    }
     Status = EFI_DEVICE_ERROR;
   }
 
-  FreePool (Urb);
+  Xhc->PciIo->Flush (Xhc->PciIo);
+  XhcFreeUrb (Xhc, Urb);
 
 ON_EXIT:
   if (EFI_ERROR (Status)) {
@@ -1740,7 +1760,8 @@ XhcCreateUsbHc (
 
   ExtCapReg            = (UINT16) (Xhc->HcCParams.Data.ExtCapReg);
   Xhc->ExtCapRegBase   = ExtCapReg << 2;
-  Xhc->UsbLegSupOffset = XhcGetLegSupCapAddr (Xhc);
+  Xhc->UsbLegSupOffset = XhcGetCapabilityAddr (Xhc, XHC_CAP_USB_LEGACY);
+  Xhc->DebugCapSupOffset = XhcGetCapabilityAddr (Xhc, XHC_CAP_USB_DEBUG);
 
   DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: Capability length 0x%x\n", Xhc->CapLength));
   DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: HcSParams1 0x%x\n", Xhc->HcSParams1));
@@ -1749,6 +1770,7 @@ XhcCreateUsbHc (
   DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: DBOff 0x%x\n", Xhc->DBOff));
   DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: RTSOff 0x%x\n", Xhc->RTSOff));
   DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: UsbLegSupOffset 0x%x\n", Xhc->UsbLegSupOffset));
+  DEBUG ((EFI_D_INFO, "XhcCreateUsb3Hc: DebugCapSupOffset 0x%x\n", Xhc->DebugCapSupOffset));
 
   //
   // Create AsyncRequest Polling Timer
@@ -1804,6 +1826,8 @@ XhcExitBootService (
     gBS->CloseEvent (Xhc->PollTimer);
   }
 
+  XhcClearBiosOwnership (Xhc);
+
   //
   // Restore original PCI attributes
   //
@@ -1813,8 +1837,6 @@ XhcExitBootService (
                   Xhc->OriginalPciAttributes,
                   NULL
                   );
-
-  XhcClearBiosOwnership (Xhc);
 }
 
 /**

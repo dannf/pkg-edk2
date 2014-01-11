@@ -1,6 +1,6 @@
 /*++
 
-Copyright (c) 2005 - 2009, Intel Corporation                                                         
+Copyright (c) 2005 - 2013, Intel Corporation                                                         
 All rights reserved. This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution. The full text of the license may be found at         
@@ -58,13 +58,13 @@ InitializeDumpStore (
 
 EFI_STATUS
 LoadVariableStore (
-  IN CHAR16   *VarName,
+  IN CHAR16   *Pattern,
   IN CHAR16   *FileName
   );
 
 EFI_STATUS
 DumpVariableStore (
-  IN CHAR16           *VarName,
+  IN CHAR16           *Pattern,
   IN BOOLEAN          Delete,
   IN EFI_FILE_HANDLE  FileHandle  
   );
@@ -77,15 +77,8 @@ CreateOutputFile (
 
 EFI_STATUS
 GetFileVariable (
-  IN EFI_FILE_HANDLE FileHandle,
-  OUT UINTN          *VariableNameSize,
-  IN OUT UINTN       *NameBufferSize,
-  IN OUT CHAR16      **VariableName,
-  IN EFI_GUID        *VendorGuid,
-  OUT UINT32         *Attributes,
-  OUT UINTN          *DataSize,
-  IN OUT UINTN       *DataBufferSize,
-  IN OUT VOID        **Data
+  IN EFI_FILE_HANDLE       FileHandle,
+  IN OUT DMPSTORE_VARIABLE *Variable
   );
 
 EFI_STATUS
@@ -139,7 +132,7 @@ SHELL_VAR_CHECK_ITEM    DmpstoreCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -169,7 +162,7 @@ Returns:
 
 --*/
 {
-  CHAR16                  *VarName;
+  CHAR16                  *Pattern;
   EFI_STATUS              Status;
   BOOLEAN                 Delete;
   EFI_FILE_HANDLE         FileHandle;
@@ -199,7 +192,7 @@ Returns:
     return Status;
   }
 
-  VarName    = NULL;
+  Pattern    = NULL;
   Status     = EFI_SUCCESS;
   Delete     = FALSE;
   FileHandle = NULL;
@@ -262,7 +255,7 @@ Returns:
   }
 
   if (NULL != ChkPck.VarList) {
-    VarName = ChkPck.VarList->VarStr;
+    Pattern = ChkPck.VarList->VarStr;
   }
   
   Item = LibCheckVarGetFlag (&ChkPck, L"-l");
@@ -270,7 +263,7 @@ Returns:
     //
     // Load and set variables from previous saved file
     //
-    Status = LoadVariableStore (VarName, Item->VarStr);
+    Status = LoadVariableStore (Pattern, Item->VarStr);
     goto Done;
   }
 
@@ -292,7 +285,7 @@ Returns:
   //
   // Dump variables in store
   //
-  Status = DumpVariableStore (VarName, Delete, FileHandle);
+  Status = DumpVariableStore (Pattern, Delete, FileHandle);
 
   //
   // Done
@@ -307,36 +300,49 @@ Done:
 }
 
 EFI_STATUS
+ReadDataFromFile (
+  IN EFI_FILE_HANDLE FileHandle,  
+  IN UINTN           ReadSize,
+  OUT VOID           *Buffer
+  )
+{
+  EFI_STATUS         Status;
+  UINTN              BufferSize;
+
+  BufferSize = ReadSize;
+  Status     = LibReadFile (FileHandle, &BufferSize, Buffer);
+  if (!EFI_ERROR (Status) && (BufferSize == 0)) {
+    //
+    // Meet end of file
+    //    
+    return EFI_END_OF_FILE;
+  }
+  if (EFI_ERROR (Status) || (BufferSize != ReadSize)) {
+    return EFI_ABORTED;
+  }
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
 LoadVariableStore (
-  IN CHAR16   *VarName,
+  IN CHAR16   *Pattern,
   IN CHAR16   *FileName
   )
 {
   EFI_STATUS         Status;
   EFI_FILE_HANDLE    FileHandle;  
-  EFI_GUID           Guid;
-  UINT32             Attributes;
-  CHAR16             *Name;
-  UINTN              NameBufferSize;
-  UINTN              NameSize;
-  VOID               *Data;
-  UINTN              DataBufferSize;
-  UINTN              DataSize;
-  BOOLEAN            Found;
   EFI_FILE_INFO      *FileInfo;
+  EFI_LIST_ENTRY     VariableList;
+  DMPSTORE_VARIABLE  *Variable;
+  EFI_LIST_ENTRY     *Link;
+  BOOLEAN            Found;
 
   Found      = FALSE;
   FileHandle = NULL;
   FileInfo   = NULL;
-  
-  NameBufferSize = INIT_NAME_BUFFER_SIZE;
-  DataBufferSize = INIT_DATA_BUFFER_SIZE;
-  Name           = AllocateZeroPool (NameBufferSize);
-  Data           = AllocatePool (DataBufferSize);
-  if (Name == NULL || Data == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    goto Done;
-  }
+  InitializeListHead (&VariableList);
+
   //
   // Open the previous saved output file
   //  
@@ -355,88 +361,96 @@ LoadVariableStore (
   // If the file is directory, abort
   //
   FileInfo = LibGetFileInfo (FileHandle);
-  if (FileInfo == NULL) {
-    Status = EFI_ABORTED;
-    PrintToken (STRING_TOKEN (STR_SHELLENV_GNC_CANNOT_OPEN_FILE), HiiHandle, L"dmpstore", FileName);
-    goto Done;
-  } else if (FileInfo->Attribute & EFI_FILE_DIRECTORY) {
+  if ((FileInfo == NULL) || (FileInfo->Attribute & EFI_FILE_DIRECTORY)) {
     Status = EFI_ABORTED;
     PrintToken (STRING_TOKEN (STR_SHELLENV_GNC_CANNOT_OPEN_FILE), HiiHandle, L"dmpstore", FileName);
     goto Done;
   }
   
   PrintToken (STRING_TOKEN (STR_DMPSTORE_LOAD), HiiHandle);
-  do {
+  while (TRUE) {
     //
     // Break the execution?
     //
     if (GetExecutionBreak ()) {
       break;
     }
-    
-    Status = GetFileVariable (FileHandle, &NameSize, &NameBufferSize, &Name, &Guid, &Attributes, &DataSize, &DataBufferSize, &Data);
-    if (Status == EFI_NOT_FOUND) {
-      Status = EFI_SUCCESS;
+
+    Variable = AllocateZeroPool (sizeof (*Variable));
+    if (Variable == NULL) {
       break;
     }
+
+    Status = GetFileVariable (FileHandle, Variable);
     if (EFI_ERROR (Status)) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_LOAD_ERR2), HiiHandle);
-      goto Done;
-    }
- 
-    if (VarName != NULL) {
-      if (!MetaiMatch (Name, VarName)) {
-        continue;
+      if (Status == EFI_END_OF_FILE) {
+        Status = EFI_SUCCESS;
       }
+      FreePool (Variable);
+      break;
     }
+
+    InsertTailList (&VariableList, &Variable->Link);
+  }
+
+  if (EFI_ERROR (Status)) {
+    PrintToken (STRING_TOKEN (STR_DMPSTORE_LOAD_ERR2), HiiHandle);
+    goto Done;
+  }
+
+  for (Link = VariableList.Flink; Link != &VariableList; Link = Link->Flink) {
+    Variable = _CR (Link, DMPSTORE_VARIABLE, Link);
     
-    Found = TRUE;
-    //
-    // Dump variable name
-    //        
-    PrintToken (
-      STRING_TOKEN (STR_DMPSTORE_VAR),
-      HiiHandle,
-      AttrType[Attributes & 7],
-      &Guid,
-      Name,
-      DataSize
-      );    
- 
-    Status = RT->SetVariable (Name, &Guid, Attributes, DataSize, Data);
-    if (EFI_ERROR (Status)) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_LOAD_ERR), HiiHandle);
-      goto Done;
+
+    if ((Pattern == NULL) || MetaiMatch (Variable->Name, Pattern)) {
+      //
+      // Dump variable name
+      //
+      PrintToken (
+        STRING_TOKEN (STR_DMPSTORE_VAR),
+        HiiHandle,
+        AttrType[Variable->Attributes & 7],
+        &Variable->VendorGuid,
+        Variable->Name,
+        Variable->DataSize
+        );
+
+      Status = RT->SetVariable (Variable->Name, &Variable->VendorGuid, Variable->Attributes, Variable->DataSize, Variable->Data);
+      if (EFI_ERROR (Status)) {
+        PrintToken (STRING_TOKEN (STR_DMPSTORE_LOAD_ERR), HiiHandle);
+      }
+      Found = TRUE;
     }
-  } while (!EFI_ERROR (Status));
+  }
 
   if (!Found) {
-    if (VarName != NULL) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_NOT_FOUND), HiiHandle, VarName);
+    if (Pattern != NULL) {
+      PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_NOT_FOUND), HiiHandle, Pattern);
     } else {
       PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_EMPTY), HiiHandle);
     }
   }
 
 Done:
+  while (!IsListEmpty (&VariableList)) {
+    Variable = _CR (VariableList.Flink, DMPSTORE_VARIABLE, Link);
+    RemoveEntryList (&Variable->Link);
+    FreePool (Variable->Name);
+    FreePool (Variable->Data);
+    FreePool (Variable);
+  }
   if (FileInfo != NULL) {
     FreePool (FileInfo); 
   }  
   if (FileHandle != NULL) {
     LibCloseFile (FileHandle);
   }
-  if (Name != NULL) {
-    FreePool (Name);
-  }
-  if (Data != NULL) {
-    FreePool (Data);
-  }
   return Status;
 }
 
 EFI_STATUS
 DumpVariableStore (
-  IN CHAR16           *VarName,
+  IN CHAR16           *Pattern,
   IN BOOLEAN          Delete,
   IN EFI_FILE_HANDLE  FileHandle
   )
@@ -457,13 +471,13 @@ DumpVariableStore (
   Found  = FALSE;
   Status = EFI_SUCCESS;
 
-  if (VarName != NULL) {
+  if (Pattern != NULL) {
     if (Delete) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_DELETE_ONE_VAR), HiiHandle, VarName);
+      PrintToken (STRING_TOKEN (STR_DMPSTORE_DELETE_ONE_VAR), HiiHandle, Pattern);
     } else if (FileHandle != NULL) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_SAVE_ONE_VAR), HiiHandle, VarName);
+      PrintToken (STRING_TOKEN (STR_DMPSTORE_SAVE_ONE_VAR), HiiHandle, Pattern);
     } else {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_DUMP_ONE_VAR), HiiHandle, VarName);
+      PrintToken (STRING_TOKEN (STR_DMPSTORE_DUMP_ONE_VAR), HiiHandle, Pattern);
     }
   } else {
     if (Delete) {
@@ -515,8 +529,8 @@ DumpVariableStore (
       Status = RT->GetNextVariableName (&NameSize, Name, &Guid);
     }
     if (!EFI_ERROR (Status)) {
-      if (VarName != NULL) {
-        if (!MetaiMatch (Name, VarName)) {
+      if (Pattern != NULL) {
+        if (!MetaiMatch (Name, Pattern)) {
           continue;
         }
       }      
@@ -585,8 +599,8 @@ DumpVariableStore (
   } while (!EFI_ERROR (Status));
 
   if (!Found) {
-    if (VarName != NULL) {
-      PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_NOT_FOUND), HiiHandle, VarName);
+    if (Pattern != NULL) {
+      PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_NOT_FOUND), HiiHandle, Pattern);
     } else {
       PrintToken (STRING_TOKEN (STR_DMPSTORE_VAR_EMPTY), HiiHandle);
     }
@@ -661,88 +675,59 @@ Done:
 
 EFI_STATUS
 GetFileVariable (
-  IN EFI_FILE_HANDLE FileHandle,
-  OUT UINTN          *VariableNameSize,
-  IN OUT UINTN       *NameBufferSize,
-  IN OUT CHAR16      **VariableName,
-  IN EFI_GUID        *VendorGuid,
-  OUT UINT32         *Attributes,
-  OUT UINTN          *DataSize,
-  IN OUT UINTN       *DataBufferSize,
-  IN OUT VOID        **Data
+  IN EFI_FILE_HANDLE       FileHandle,
+  IN OUT DMPSTORE_VARIABLE *Variable
   )
 {
   EFI_STATUS  Status;
-  UINTN       BufferSize;
-  UINTN       NameSize;
-  UINTN       Size;
   
-  NameSize   = 0;
-  BufferSize = sizeof (UINT32);
-  Status     = LibReadFile (FileHandle, &BufferSize, &NameSize);
-  if (!EFI_ERROR (Status) && (BufferSize == 0)) {
-    return EFI_NOT_FOUND; // End of file
-  }
-  if (EFI_ERROR (Status) || (BufferSize != sizeof (UINT32))) {
-    return EFI_ABORTED;
-  }
-  
-  if (NameSize > *NameBufferSize) {
+  Status = ReadDataFromFile (FileHandle, sizeof (Variable->NameSize), &Variable->NameSize);
+  if (Status == EFI_END_OF_FILE) {
     //
-    // Expand at least twice to avoid reallocate many times
+    // Meet end of file
     //
-    FreePool (*VariableName);
-    *NameBufferSize = NameSize > *NameBufferSize * 2 ? NameSize : *NameBufferSize * 2;
-    *VariableName   = AllocateZeroPool (*NameBufferSize);
-    if (*VariableName == NULL) {
-      return EFI_OUT_OF_RESOURCES;
+    return Status;
+  }
+
+  if (!EFI_ERROR (Status)) {
+    Variable->Name = AllocatePool (Variable->NameSize);
+    if (Variable->Name == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
+    }
+    if (!EFI_ERROR (Status)) {
+      Status = ReadDataFromFile (FileHandle, Variable->NameSize, Variable->Name);
+      if (!EFI_ERROR (Status)) {
+        Status = ReadDataFromFile (FileHandle, sizeof (Variable->VendorGuid), &Variable->VendorGuid);
+        if (!EFI_ERROR (Status)) {
+          Status = ReadDataFromFile (FileHandle, sizeof (Variable->Attributes), &Variable->Attributes);
+          if (!EFI_ERROR (Status)) {
+            Status = ReadDataFromFile (FileHandle, sizeof (Variable->DataSize), &Variable->DataSize);
+            if (!EFI_ERROR (Status)) {
+              Variable->Data = AllocatePool (Variable->DataSize);
+              if (Variable->Data == NULL) {
+                Status = EFI_OUT_OF_RESOURCES;
+              }
+              if (!EFI_ERROR (Status)) {
+                Status = ReadDataFromFile (FileHandle, Variable->DataSize, Variable->Data);
+              }
+            }
+          }
+        }
+      }
     }
   }
-  BufferSize = NameSize;
-  Status     = LibReadFile (FileHandle, &BufferSize, *VariableName);
-  if (EFI_ERROR (Status) || (BufferSize != NameSize)) {
-    return EFI_ABORTED;
-  }
 
-  BufferSize = sizeof (EFI_GUID);
-  Status     = LibReadFile (FileHandle, &BufferSize, VendorGuid);
-  if (EFI_ERROR (Status) || (BufferSize != sizeof (EFI_GUID))) {
-    return EFI_ABORTED;
-  }
-
-  BufferSize = sizeof (UINT32);
-  Status     = LibReadFile (FileHandle, &BufferSize, Attributes);
-  if (EFI_ERROR (Status) || (BufferSize != sizeof (UINT32))) {
-    return EFI_ABORTED;
-  }
-
-  Size       = 0;
-  BufferSize = sizeof (UINT32);
-  Status     = LibReadFile (FileHandle, &BufferSize, &Size);
-  if (EFI_ERROR (Status) || (BufferSize != sizeof (UINT32))) {
-    return EFI_ABORTED;
-  }
-  
-  if (Size > *DataBufferSize) {
-    //
-    // Expand at least twice to avoid reallocate many times
-    //
-    FreePool (*Data);
-    *DataBufferSize = Size > *DataBufferSize * 2 ? Size : *DataBufferSize * 2;
-    *Data           = AllocatePool (*DataBufferSize);
-    if (*Data == NULL) {
-      return EFI_OUT_OF_RESOURCES;
+  if (EFI_ERROR (Status)) {
+    if (Variable->Name != NULL) {
+      FreePool (Variable->Name);
     }
-  }
-  BufferSize = Size;
-  Status     = LibReadFile (FileHandle, &BufferSize, *Data);
-  if (EFI_ERROR (Status) || (BufferSize != Size)) {
+    if (Variable->Data != NULL) {
+      FreePool (Variable->Data);
+    }
     return EFI_ABORTED;
+  } else {
+    return EFI_SUCCESS;
   }
-  
-  *VariableNameSize = NameSize;
-  *DataSize         = Size;
-  return EFI_SUCCESS;
 }
 
 EFI_STATUS

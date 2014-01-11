@@ -66,7 +66,7 @@ SHELL_VAR_CHECK_ITEM      CpCheckList[] = {
     NULL,
     0,
     0,
-    0
+    (SHELL_VAR_CHECK_FLAG_TYPE) 0
   }
 };
 
@@ -869,7 +869,6 @@ Returns:
   EFI_STATUS                      Status;
   EFI_FILE_INFO                   *SrcInfo;
   EFI_FILE_INFO                   *DstInfo;
-  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *DstVol;
   EFI_FILE_SYSTEM_INFO            *DstFsInfo;
   CHAR16                          InputString[10];
   UINTN                           BufSize;
@@ -894,7 +893,6 @@ Returns:
   SrcInfo           = NULL;
   DstInfo           = NULL;
   FileInfo          = NULL;
-  DstVol            = NULL;
   DstFsInfo         = NULL;
   InputString[0]    = 0;
   BufSize           = 0;

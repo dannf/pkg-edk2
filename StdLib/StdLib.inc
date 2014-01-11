@@ -54,6 +54,10 @@
   LibGen|StdLib/PosixLib/Gen/LibGen.inf
   LibGlob|StdLib/PosixLib/Glob/LibGlob.inf
   LibStringlist|StdLib/PosixLib/Stringlist/LibStringlist.inf
+  LibIIO|StdLib/LibC/Uefi/InteractiveIO/IIO.inf
+
+# Additional, non-standard, libraries
+  LibContainer|StdLib/LibC/Containers/ContainerLib.inf
 
 # Libraries for device abstractions within the Standard C Library
 # Applications should not directly access any functions defined in these libraries.
@@ -63,6 +67,9 @@
   DevUtility|StdLib/LibC/Uefi/Devices/daUtility.inf
 
 [LibraryClasses.ARM]
+  NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
+
+[LibraryClasses.AArch64]
   NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
 
 [Components]
