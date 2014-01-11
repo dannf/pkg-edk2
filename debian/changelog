@@ -9,6 +9,7 @@ edk2 (0~20131029.2f34e065-1) UNRELEASED; urgency=medium
     Closes LP: #1267816.
   * debian/post-patches/setup.diff: drop gcc4.7 handling, which is
     sorted upstream.
+  * Update debian/copyright
 
  -- Steve Langasek <vorlon@debian.org>  Fri, 10 Jan 2014 21:33:45 +0000
 
