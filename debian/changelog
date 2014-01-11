@@ -3,6 +3,7 @@ edk2 (0~20131029.2f34e065-1) UNRELEASED; urgency=medium
   * New upstream release.
     - update debian/rules to pull a new version of the shell.
     - drop debian/patches/enum-handling, fixed upstream.
+    - drop debian/patches/mismatched-enums, fixed upstream.
   * debian/patches/enable-nvme: enable the NVMe driver.
     Closes LP: #1267816.
   * debian/post-patches/setup.diff: drop gcc4.7 handling, which is
