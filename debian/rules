@@ -42,7 +42,7 @@ override_dh_auto_build:
 			-b RELEASE; \
 		cp -a Build/Fat/RELEASE_GCC47/X64/Fat.efi \
 			FatBinPkg/EnhancedFatDxe/X64/Fat.efi; \
-		build -DSECURE_BOOT_ENABLE=TRUE -b RELEASE
+		build -DSECURE_BOOT_ENABLE=TRUE -DFD_SIZE_2MB -b RELEASE
 
 override_dh_auto_clean:
 	set -e; \
