@@ -1,8 +1,7 @@
 Source: edk2
 Section: non-free/misc
 Priority: extra
-Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
-XSBC-Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
 Uploaders: Steve Langasek <vorlon@debian.org>, Serge Hallyn <serge.hallyn@ubuntu.com>
 Build-Depends: debhelper (>= 8), uuid-dev, quilt, iasl, gcc-multilib [i386], nasm, python
 Standards-Version: 3.9.4
@@ -13,7 +12,6 @@ Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-qemu/edk2.git
 Package: ovmf
 Architecture: all
 Depends: ${misc:Depends}
-Breaks: qemu-system-common (<<1.7.0+dfsg-3ubuntu4)
 Replaces: qemu-system-common (<<1.7.0+dfsg-3ubuntu4)
 Description: UEFI firmware for virtual machines
  Open Virtual Machine Firmware is a build of EDK II for virtual machines.
