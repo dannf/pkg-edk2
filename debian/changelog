@@ -1,3 +1,11 @@
+edk2 (0~20131112.2590861a-1ubuntu1) trusty; urgency=medium
+
+  * debian/ovmf.links: create a OVMF.fd link for qemu
+  * debian/control: ovmf Breaks/Replaces qemu-system-common versions which
+    shipped that link.
+
+ -- Serge Hallyn <serge.hallyn@ubuntu.com>  Tue, 25 Feb 2014 09:50:04 -0600
+
 edk2 (0~20131112.2590861a-1) unstable; urgency=medium
 
   * New upstream release, requested by Dimitri Ledkov for persistent nvram
