@@ -4,6 +4,10 @@ Source: git://github.com/tianocore/edk2.git, http://www.openssl.org/source/,
  and https://efi-shell.svn.sourceforge.net/svnroot/efi-shell/trunk/Shell,
  with .efi binary files removed from the source at package generation time.
  See get-orig-source in debian/rules for details.
+Disclaimer: This package is not part of Debian because it does not meet
+ Debian's license standards due to the licensing on the Intel FAT driver
+ (see License: Intel-Fat-Driver below).  With this exception, all other
+ code in this package meets the Debian Free Software Guidelines.
 
 Files: *
 Copyright: 1999-2013, Intel Corporation
