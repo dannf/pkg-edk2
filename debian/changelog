@@ -1,4 +1,4 @@
-edk2 (0~20131112.2590861a-3) UNRELEASED; urgency=medium
+edk2 (0~20131112.2590861a-3) unstable; urgency=medium
 
   [ Steve Langasek ]
   * debian/copyright: include a Disclaimer field to document clearly why
@@ -10,7 +10,7 @@ edk2 (0~20131112.2590861a-3) UNRELEASED; urgency=medium
   * apply upstream fix-undefined-behavior-in-vfrcompiler.patch, kindly provided
     by dann frazier, to fix another ftbfs (Closes: #773492)
 
- -- Steve Langasek <vorlon@debian.org>  Thu, 27 Mar 2014 08:16:09 -0700
+ -- Michael Tokarev <mjt@tls.msk.ru>  Fri, 19 Dec 2014 10:16:14 +0300
 
 edk2 (0~20131112.2590861a-2) unstable; urgency=medium
 
