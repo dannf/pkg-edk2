@@ -22,6 +22,7 @@ endif
 EDK2_ARCH_DIR = X64
 EDK2_TOOLCHAIN = GCC49
 
+ovmf_archs = amd64 i386
 ver := $(shell dpkg-parsechangelog | sed -n -e's/^Version: \(.*\)-[^-]\+/\1/p')
 
 %:
@@ -34,6 +35,7 @@ override_dh_auto_build:
 	# single shell invocation
 	. ./edksetup.sh
 	QUILT_PC=.pc-post QUILT_PATCHES=debian/post-patches quilt push -a || [ $$? = 2 ]
+ifneq (,$(filter $(DEB_BUILD_ARCH),$(ovmf_archs)))
 	cd CryptoPkg/Library/OpensslLib/ && ./Install.sh
 	cd UefiCpuPkg/ResetVector/Vtf0 && python Build.py
 	mkdir -p EdkShellBinPkg/FullShell/$(EDK2_ARCH_DIR) FatBinPkg/EnhancedFatDxe/$(EDK2_ARCH_DIR)
@@ -46,6 +48,7 @@ override_dh_auto_build:
 		cp -a Build/Fat/RELEASE_$(EDK2_TOOLCHAIN)/$(EDK2_ARCH_DIR)/Fat.efi \
 			FatBinPkg/EnhancedFatDxe/$(EDK2_ARCH_DIR)/Fat.efi; \
 		build -DSECURE_BOOT_ENABLE=TRUE -DFD_SIZE_2MB -b RELEASE
+endif
 
 override_dh_auto_clean:
 	set -e; \

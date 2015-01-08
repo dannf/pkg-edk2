@@ -1,6 +1,7 @@
 edk2 (0~20150106.5c2d456b-1) UNRELEASED; urgency=medium
 
   * New upstream release
+  * ovmf: restrict architecture to i386 and amd64
 
  -- dann frazier <dannf@debian.org>  Thu, 08 Jan 2015 15:10:02 -0700
 

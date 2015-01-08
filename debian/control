@@ -10,7 +10,7 @@ Vcs-Git: git+ssh://git.debian.org/git/pkg-qemu/edk2.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-qemu/edk2.git
 
 Package: ovmf
-Architecture: all
+Architecture: amd64 i386
 Depends: ${misc:Depends}
 Replaces: qemu-system-common (<<1.7.0+dfsg-3ubuntu4)
 Description: UEFI firmware for virtual machines
